@@ -1,0 +1,8 @@
+# Placeholder for shared configuration
+# Add common configuration properties here
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

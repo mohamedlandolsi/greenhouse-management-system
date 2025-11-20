@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  postgres-environnement:
+    image: postgres:15-alpine
+    container_name: postgres-environnement
+    environment:
+      POSTGRES_DB: environnement_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-environnement-data:/var/lib/postgresql/data
+    networks:
+      - greenhouse-network
+
+  postgres-controle:
+    image: postgres:15-alpine
+    container_name: postgres-controle
+    environment:
+      POSTGRES_DB: controle_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-controle-data:/var/lib/postgresql/data
+    networks:
+      - greenhouse-network
+
+  service-discovery:
+    build:
+      context: .
+      dockerfile: service-discovery/Dockerfile
+    container_name: service-discovery
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - greenhouse-network
+    healthcheck:
+      test: ["CMD-SHELL", "sleep 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  config-server:
+    build:
+      context: .
+      dockerfile: config-server/Dockerfile
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-discovery:8761/eureka/
+    depends_on:
+      service-discovery:
+        condition: service_healthy
+    networks:
+      - greenhouse-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-discovery:8761/eureka/
+    depends_on:
+      service-discovery:
+        condition: service_healthy
+    networks:
+      - greenhouse-network
+
+  environnement-service:
+    build:
+      context: .
+      dockerfile: environnement-service/Dockerfile
+    container_name: environnement-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-environnement:5432/environnement_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-discovery:8761/eureka/
+    depends_on:
+      - postgres-environnement
+      - service-discovery
+    networks:
+      - greenhouse-network
+
+  controle-service:
+    build:
+      context: .
+      dockerfile: controle-service/Dockerfile
+    container_name: controle-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-controle:5432/controle_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-discovery:8761/eureka/
+    depends_on:
+      - postgres-controle
+      - service-discovery
+    networks:
+      - greenhouse-network
+
+networks:
+  greenhouse-network:
+    driver: bridge
+
+volumes:
+  postgres-environnement-data:
+  postgres-controle-data:
