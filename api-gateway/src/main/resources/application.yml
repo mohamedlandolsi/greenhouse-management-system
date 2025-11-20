@@ -66,10 +66,17 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     registry-fetch-interval-seconds: 5
+    instance-info-replication-interval-seconds: 5
   instance:
     prefer-ip-address: true
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 10
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    metadata-map:
+      version: 1.0.0
+      environment: development
+      description: API Gateway with routing and load balancing
+    health-check-url-path: /actuator/health
 
 # Resilience4j Configuration
 resilience4j:

@@ -4,29 +4,86 @@ server:
 spring:
   application:
     name: service-discovery
+  # Disable Spring Boot DevTools for production
+  devtools:
+    restart:
+      enabled: false
 
 eureka:
   instance:
     hostname: localhost
+    prefer-ip-address: false
+    # Lease renewal interval (default 30s)
+    lease-renewal-interval-in-seconds: 5
+    # Lease expiration duration (default 90s)
+    lease-expiration-duration-in-seconds: 10
+    # Metadata for service versioning and environment
+    metadata-map:
+      version: 1.0.0
+      environment: development
+      region: local
   client:
+    # Don't register itself as a client
     register-with-eureka: false
+    # Don't fetch registry information
     fetch-registry: false
     service-url:
       defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+    # How often to fetch registry information (default 30s)
+    registry-fetch-interval-seconds: 5
   server:
+    # Disable self-preservation mode for development
+    # In production, set to true to prevent mass de-registration during network issues
     enable-self-preservation: false
+    # Eviction interval timer (default 60s)
     eviction-interval-timer-in-ms: 4000
+    # Response cache update interval (default 30s)
+    response-cache-update-interval-ms: 5000
+    # Expected client renewal interval (default 30s)
+    expected-client-renewal-interval-seconds: 5
+    # Renewal threshold percentage (default 0.85)
+    renewal-percent-threshold: 0.49
+    # Enable delta queue for more efficient registry updates
+    disable-delta: false
+    # Retention time for cancelled leases
+    retention-time-in-m-s-in-delta-queue: 0
+  dashboard:
+    # Enable Eureka dashboard
+    enabled: true
+    # Dashboard path (default /eureka)
+    path: /
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,env,beans,mappings
   endpoint:
     health:
       show-details: always
+      show-components: always
+  health:
+    defaults:
+      enabled: true
+  info:
+    env:
+      enabled: true
+
+# Application info displayed in Eureka dashboard and /actuator/info
+info:
+  app:
+    name: ${spring.application.name}
+    description: Eureka Service Discovery Server
+    version: 1.0.0
+    encoding: @project.build.sourceEncoding@
+    java:
+      version: @java.version@
 
 logging:
   level:
     com.netflix.eureka: INFO
     com.netflix.discovery: INFO
+    org.springframework.cloud: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

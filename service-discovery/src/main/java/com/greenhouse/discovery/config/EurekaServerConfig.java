@@ -1,0 +1,24 @@
+package com.greenhouse.discovery.config;
+
+import com.netflix.appinfo.ApplicationInfoManager;
+import com.netflix.appinfo.InstanceInfo;
+import com.netflix.discovery.EurekaClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+
+import javax.annotation.PostConstruct;
+
+@Configuration
+public class EurekaServerConfig {
+
+    @Autowired(required = false)
+    private ApplicationInfoManager applicationInfoManager;
+
+    @PostConstruct
+    public void init() {
+        if (applicationInfoManager != null) {
+            // Set instance status to UP
+            applicationInfoManager.setInstanceStatus(InstanceInfo.InstanceStatus.UP);
+        }
+    }
+}
