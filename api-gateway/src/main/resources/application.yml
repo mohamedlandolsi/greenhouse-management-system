@@ -1,5 +1,7 @@
 server:
   port: 8080
+  netty:
+    connection-timeout: 5000
 
 spring:
   application:
@@ -13,7 +15,9 @@ spring:
       globalcors:
         corsConfigurations:
           '[/**]':
-            allowedOrigins: "*"
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://localhost:3001"
             allowedMethods:
               - GET
               - POST
@@ -21,7 +25,39 @@ spring:
               - DELETE
               - PATCH
               - OPTIONS
-            allowedHeaders: "*"
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+            maxAge: 3600
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 5s
+        pool:
+          type: elastic
+          max-idle-time: 30s
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
+# JWT Configuration
+jwt:
+  secret: MySecretKeyForJWTTokenGenerationAndValidation123456789
+  expiration: 86400000
+
+# Gateway Security
+gateway:
+  security:
+    enabled: false
+  request:
+    max-size: 5242880
 
 eureka:
   client:
@@ -29,21 +65,68 @@ eureka:
       defaultZone: http://localhost:8761/eureka/
     register-with-eureka: true
     fetch-registry: true
+    registry-fetch-interval-seconds: 5
   instance:
     prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      environnementCircuitBreaker:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        recordExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+      controleCircuitBreaker:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+  timelimiter:
+    instances:
+      environnementCircuitBreaker:
+        timeoutDuration: 5s
+      controleCircuitBreaker:
+        timeoutDuration: 5s
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,gateway
+        include: health,info,metrics,gateway,circuitbreakers,ratelimiters
   endpoint:
     health:
       show-details: always
     gateway:
       enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
 
 logging:
   level:
+    com.greenhouse.gateway: INFO
     org.springframework.cloud.gateway: INFO
     reactor.netty: INFO
+    io.github.resilience4j: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
