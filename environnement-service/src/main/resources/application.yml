@@ -18,14 +18,31 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
       properties:
+        retry.backoff.ms: 1000
+        request.timeout.ms: 30000
+        delivery.timeout.ms: 120000
+        linger.ms: 5
+        batch.size: 16384
+        buffer.memory: 33554432
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        compression.type: snappy
         spring.json.add.type.headers: false
-    topic:
-      greenhouse-alerts: greenhouse-alerts
+
+# Kafka Topics Configuration
+kafka:
+  topic:
+    greenhouse-alerts: greenhouse-alerts
+    measurement-stream: measurement-stream
+    partitions: 3
+    replication-factor: 1
 
 eureka:
   client:
@@ -50,7 +67,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always
@@ -65,4 +82,6 @@ logging:
   level:
     com.greenhouse: INFO
     org.springframework.web: INFO
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
     org.hibernate.SQL: DEBUG

@@ -54,6 +54,15 @@ public class EquipementService {
         return mapToResponse(equipement);
     }
 
+    /**
+     * Get equipment entity by ID (for internal use when entity is needed)
+     */
+    public Equipement getEquipementEntityById(Long id) {
+        log.info("Fetching equipment entity with ID: {}", id);
+        return equipementRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Équipement non trouvé avec l'ID: " + id));
+    }
+
     @Transactional
     public EquipementResponse updateEquipement(Long id, EquipementRequest request) {
         log.info("Updating equipment with ID: {}", id);

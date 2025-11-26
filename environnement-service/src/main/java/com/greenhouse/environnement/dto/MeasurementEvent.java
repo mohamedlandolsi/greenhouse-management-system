@@ -9,16 +9,15 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Event DTO for environmental threshold violation alerts via Kafka
- * Topic: greenhouse-alerts
- * Producer: Environnement service
- * Consumer: Contrôle service
+ * Event DTO for real-time measurement streaming via Kafka
+ * Topic: measurement-stream
+ * Consumers: Analytics service (future), Dashboard (SSE)
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AlertEvent {
+public class MeasurementEvent {
 
     /**
      * Unique event identifier for idempotency
@@ -27,7 +26,7 @@ public class AlertEvent {
     private String eventId = UUID.randomUUID().toString();
 
     /**
-     * ID of the measurement that triggered the alert
+     * ID of the measurement record
      */
     private Long mesureId;
 
@@ -42,9 +41,19 @@ public class AlertEvent {
     private String parametreType;
 
     /**
-     * Measured value that triggered the alert
+     * Parameter name
+     */
+    private String parametreName;
+
+    /**
+     * Measured value
      */
     private Double valeur;
+
+    /**
+     * Unit of measurement
+     */
+    private String unite;
 
     /**
      * Minimum threshold
@@ -57,19 +66,14 @@ public class AlertEvent {
     private Double seuilMax;
 
     /**
+     * Whether this measurement triggered an alert
+     */
+    private Boolean isAlert;
+
+    /**
      * Timestamp of the measurement
      */
     private LocalDateTime dateMesure;
-
-    /**
-     * Alert severity (LOW, MEDIUM, HIGH, CRITICAL)
-     */
-    private String severity;
-
-    /**
-     * Descriptive message about the alert
-     */
-    private String message;
 
     /**
      * Event creation timestamp

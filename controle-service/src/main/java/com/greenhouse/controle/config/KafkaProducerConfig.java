@@ -1,7 +1,6 @@
-package com.greenhouse.environnement.config;
+package com.greenhouse.controle.config;
 
-import com.greenhouse.environnement.dto.AlertEvent;
-import com.greenhouse.environnement.dto.MeasurementEvent;
+import com.greenhouse.controle.dto.EquipmentActionEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -17,8 +16,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Kafka Producer Configuration for Environnement Service
- * Configures producers for greenhouse-alerts and measurement-stream topics
+ * Kafka Producer Configuration for Controle Service
+ * Configures producer for equipment-actions topic
  */
 @Configuration
 @Slf4j
@@ -41,15 +40,6 @@ public class KafkaProducerConfig {
 
     @Value("${spring.kafka.producer.properties.delivery.timeout.ms:120000}")
     private int deliveryTimeoutMs;
-
-    @Value("${spring.kafka.producer.properties.linger.ms:5}")
-    private int lingerMs;
-
-    @Value("${spring.kafka.producer.properties.batch.size:16384}")
-    private int batchSize;
-
-    @Value("${spring.kafka.producer.properties.buffer.memory:33554432}")
-    private int bufferMemory;
 
     /**
      * Common producer configuration
@@ -74,17 +64,15 @@ public class KafkaProducerConfig {
         props.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, deliveryTimeoutMs);
         
         // Performance tuning
-        props.put(ProducerConfig.LINGER_MS_CONFIG, lingerMs);
-        props.put(ProducerConfig.BATCH_SIZE_CONFIG, batchSize);
-        props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, bufferMemory);
+        props.put(ProducerConfig.LINGER_MS_CONFIG, 5);
+        props.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384);
+        props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 33554432);
         
         // Idempotence - ensures exactly-once semantics
         props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-        
-        // Max in-flight requests for ordering guarantee with idempotence
         props.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
         
-        // Compression for better throughput
+        // Compression
         props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy");
         
         // JSON serializer settings
@@ -96,38 +84,37 @@ public class KafkaProducerConfig {
     }
 
     /**
-     * Producer factory for AlertEvent messages
+     * Producer factory for EquipmentActionEvent messages
      */
     @Bean
-    public ProducerFactory<String, AlertEvent> alertProducerFactory() {
+    public ProducerFactory<String, EquipmentActionEvent> equipmentActionProducerFactory() {
         return new DefaultKafkaProducerFactory<>(producerConfigs());
     }
 
     /**
-     * KafkaTemplate for sending AlertEvent messages
+     * KafkaTemplate for sending EquipmentActionEvent messages
      */
     @Bean
-    public KafkaTemplate<String, AlertEvent> alertKafkaTemplate() {
-        KafkaTemplate<String, AlertEvent> template = new KafkaTemplate<>(alertProducerFactory());
+    public KafkaTemplate<String, EquipmentActionEvent> equipmentActionKafkaTemplate() {
+        KafkaTemplate<String, EquipmentActionEvent> template = 
+                new KafkaTemplate<>(equipmentActionProducerFactory());
         template.setObservationEnabled(true);
         return template;
     }
 
     /**
-     * Producer factory for MeasurementEvent messages
+     * Generic producer factory for DLQ messages
      */
     @Bean
-    public ProducerFactory<String, MeasurementEvent> measurementProducerFactory() {
+    public ProducerFactory<String, Object> genericProducerFactory() {
         return new DefaultKafkaProducerFactory<>(producerConfigs());
     }
 
     /**
-     * KafkaTemplate for sending MeasurementEvent messages
+     * Generic KafkaTemplate for DLQ and other purposes
      */
     @Bean
-    public KafkaTemplate<String, MeasurementEvent> measurementKafkaTemplate() {
-        KafkaTemplate<String, MeasurementEvent> template = new KafkaTemplate<>(measurementProducerFactory());
-        template.setObservationEnabled(true);
-        return template;
+    public KafkaTemplate<String, Object> kafkaTemplate() {
+        return new KafkaTemplate<>(genericProducerFactory());
     }
 }

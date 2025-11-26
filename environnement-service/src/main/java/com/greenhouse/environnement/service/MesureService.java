@@ -1,6 +1,7 @@
 package com.greenhouse.environnement.service;
 
 import com.greenhouse.environnement.dto.AlertEvent;
+import com.greenhouse.environnement.dto.MeasurementEvent;
 import com.greenhouse.environnement.dto.MesureRequest;
 import com.greenhouse.environnement.dto.MesureResponse;
 import com.greenhouse.environnement.exception.ResourceNotFoundException;
@@ -57,7 +58,10 @@ public class MesureService {
         Mesure savedMesure = mesureRepository.save(mesure);
         log.info("Measurement created with ID: {} - Alert: {}", savedMesure.getId(), isAlert);
 
-        // If alert, send to Kafka
+        // Always send measurement to measurement-stream topic
+        sendMeasurementToKafka(savedMesure, parametre, isAlert);
+
+        // If alert, send to greenhouse-alerts topic
         if (isAlert) {
             sendAlertToKafka(savedMesure, parametre);
         }
@@ -169,18 +173,58 @@ public class MesureService {
                 parametre.getSeuilMax()
         );
 
+        // Determine severity based on how far the value is from the threshold
+        String severity = calculateSeverity(mesure.getValeur(), parametre.getSeuilMin(), parametre.getSeuilMax());
+
         AlertEvent alertEvent = AlertEvent.builder()
                 .mesureId(mesure.getId())
                 .parametreId(mesure.getParametreId())
-                .type(parametre.getType())
+                .parametreType(parametre.getType().name())
                 .valeur(mesure.getValeur())
                 .seuilMin(parametre.getSeuilMin())
                 .seuilMax(parametre.getSeuilMax())
-                .timestamp(mesure.getDateMesure())
+                .dateMesure(mesure.getDateMesure())
+                .severity(severity)
                 .message(message)
                 .build();
 
         kafkaProducerService.sendAlert(alertEvent);
+    }
+
+    private void sendMeasurementToKafka(Mesure mesure, Parametre parametre, boolean isAlert) {
+        MeasurementEvent measurementEvent = MeasurementEvent.builder()
+                .mesureId(mesure.getId())
+                .parametreId(mesure.getParametreId())
+                .parametreType(parametre.getType().name())
+                .parametreName(parametre.getNom())
+                .valeur(mesure.getValeur())
+                .unite(parametre.getUnite())
+                .seuilMin(parametre.getSeuilMin())
+                .seuilMax(parametre.getSeuilMax())
+                .isAlert(isAlert)
+                .dateMesure(mesure.getDateMesure())
+                .build();
+
+        kafkaProducerService.sendMeasurement(measurementEvent);
+    }
+
+    private String calculateSeverity(Double value, Double seuilMin, Double seuilMax) {
+        double deviation;
+        if (value < seuilMin) {
+            deviation = (seuilMin - value) / seuilMin * 100;
+        } else {
+            deviation = (value - seuilMax) / seuilMax * 100;
+        }
+
+        if (deviation > 50) {
+            return "CRITICAL";
+        } else if (deviation > 25) {
+            return "HIGH";
+        } else if (deviation > 10) {
+            return "MEDIUM";
+        } else {
+            return "LOW";
+        }
     }
 
     private MesureResponse mapToResponse(Mesure mesure, Parametre parametre) {
