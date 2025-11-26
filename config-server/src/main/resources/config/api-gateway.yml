@@ -1,0 +1,85 @@
+# API Gateway Configuration
+# Default profile configuration
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 5s
+        pool:
+          type: elastic
+          max-idle-time: 30s
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
+server:
+  port: 8080
+  netty:
+    connection-timeout: 5000
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:MySecretKeyForJWTTokenGenerationAndValidation123456789}
+  expiration: 86400000
+
+# Gateway Security
+gateway:
+  security:
+    enabled: false
+  request:
+    max-size: 5242880
+
+# Resilience4j Configuration for Gateway
+resilience4j:
+  circuitbreaker:
+    instances:
+      environnementCircuitBreaker:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+      controleCircuitBreaker:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+  timelimiter:
+    instances:
+      environnementCircuitBreaker:
+        timeoutDuration: 5s
+      controleCircuitBreaker:
+        timeoutDuration: 5s
+
+# Service-specific logging
+logging:
+  level:
+    com.greenhouse.gateway: INFO
+    org.springframework.cloud.gateway: INFO
+    reactor.netty: INFO
+    io.github.resilience4j: DEBUG

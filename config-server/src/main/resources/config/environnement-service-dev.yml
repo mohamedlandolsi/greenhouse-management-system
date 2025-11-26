@@ -1,0 +1,31 @@
+# Environnement Service - Development Profile
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/environnement_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+  jpa:
+    show-sql: true
+  kafka:
+    bootstrap-servers: localhost:9092
+
+logging:
+  level:
+    com.greenhouse.environnement: DEBUG
+    org.hibernate.SQL: DEBUG
+
+# Development environment has relaxed thresholds
+greenhouse:
+  environnement:
+    alert-thresholds:
+      temperature-max: 40.0
+      temperature-min: 5.0
+      humidity-max: 95.0
+      humidity-min: 20.0
+    measurement:
+      retention-days: 30
+      sampling-interval-seconds: 60

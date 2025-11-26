@@ -1,0 +1,39 @@
+# Environnement Service - Production Profile
+
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://prod-db-host:5432/environnement_db}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      acks: all
+      retries: 5
+
+logging:
+  level:
+    com.greenhouse.environnement: INFO
+
+# Production environment has strict thresholds
+greenhouse:
+  environnement:
+    alert-thresholds:
+      temperature-max: 32.0
+      temperature-min: 12.0
+      humidity-max: 85.0
+      humidity-min: 35.0
+      co2-max: 1200.0
+      light-min: 250.0
+    measurement:
+      retention-days: 365
+      sampling-interval-seconds: 600
+      enable-auto-alerts: true

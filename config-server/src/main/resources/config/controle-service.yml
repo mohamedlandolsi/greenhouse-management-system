@@ -1,0 +1,75 @@
+# Controle Service Configuration
+# Default profile configuration
+
+spring:
+  application:
+    name: controle-service
+  datasource:
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    consumer:
+      group-id: controle-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.greenhouse.controle.dto.AlertEvent
+      auto-offset-reset: earliest
+      enable-auto-commit: true
+    topic:
+      greenhouse-alerts: greenhouse-alerts
+
+server:
+  port: 8082
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    instances:
+      environnement-service:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+
+# Service-specific logging
+logging:
+  level:
+    com.greenhouse.controle: INFO
+
+# Refreshable Configuration Properties
+greenhouse:
+  controle:
+    auto-control:
+      enabled: true
+      delay-seconds: 5
+      max-retries: 3
+      default-action: "AUTO"
+    equipment:
+      health-check-interval-seconds: 300
+      command-timeout-seconds: 30
+      enable-logging: true

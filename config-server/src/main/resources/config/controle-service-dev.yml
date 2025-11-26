@@ -1,0 +1,31 @@
+# Controle Service - Development Profile
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/controle_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+  jpa:
+    show-sql: true
+  kafka:
+    bootstrap-servers: localhost:9092
+
+logging:
+  level:
+    com.greenhouse.controle: DEBUG
+    org.hibernate.SQL: DEBUG
+
+# Development environment settings
+greenhouse:
+  controle:
+    auto-control:
+      enabled: true
+      delay-seconds: 2
+      max-retries: 5
+    equipment:
+      health-check-interval-seconds: 60
+      command-timeout-seconds: 60
+      enable-logging: true

@@ -1,0 +1,61 @@
+# Environnement Service Configuration
+# Default profile configuration
+
+spring:
+  application:
+    name: environnement-service
+  datasource:
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+      acks: all
+      retries: 3
+    topic:
+      greenhouse-alerts: greenhouse-alerts
+
+server:
+  port: 8081
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+
+# Service-specific logging
+logging:
+  level:
+    com.greenhouse.environnement: INFO
+
+# Refreshable Configuration Properties
+greenhouse:
+  environnement:
+    alert-thresholds:
+      temperature-max: 35.0
+      temperature-min: 10.0
+      humidity-max: 90.0
+      humidity-min: 30.0
+      co2-max: 1500.0
+      light-min: 200.0
+    measurement:
+      retention-days: 90
+      sampling-interval-seconds: 300
+      enable-auto-alerts: true

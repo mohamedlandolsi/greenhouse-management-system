@@ -7,10 +7,53 @@ spring:
   cloud:
     config:
       server:
+        # Native profile for local filesystem
         native:
-          search-locations: classpath:/config
+          search-locations: classpath:/config,classpath:/config/{profile},file:./config-repo
+        # Git repository backend (optional - can be enabled by setting active profile to 'git')
+        git:
+          uri: file://${user.home}/config-repo
+          # For remote Git repository, use:
+          # uri: https://github.com/yourusername/config-repo.git
+          # username: ${GIT_USERNAME}
+          # password: ${GIT_PASSWORD}
+          clone-on-start: true
+          default-label: master
+          search-paths: '{application}'
+          timeout: 5
+          # Skip SSL verification for self-signed certificates (dev only)
+          skip-ssl-validation: false
+          force-pull: true
+        # Encryption/Decryption key
+        encrypt:
+          enabled: true
+        # Fail fast if unable to connect to config server
+        fail-fast: false
+        # Override system properties
+        override-system-properties: false
+      # Configuration label (branch/tag)
+      label: master
+      # Retry configuration
+      retry:
+        initial-interval: 1000
+        max-attempts: 6
+        max-interval: 2000
+        multiplier: 1.1
+      # Discovery configuration
+      discovery:
+        enabled: true
+        service-id: config-server
+  # Security for actuator endpoints
+  security:
+    user:
+      name: config-admin
+      password: config-secret
   profiles:
     active: native
+
+# Encryption key (in production, use environment variable)
+encrypt:
+  key: MySecretEncryptionKeyForConfigServer123456
 
 eureka:
   client:
@@ -29,17 +72,31 @@ eureka:
       version: 1.0.0
       environment: development
       description: Centralized configuration management server
+      configPath: /actuator/configprops
     health-check-url-path: /actuator/health
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,refresh
+        include: health,info,metrics,refresh,env,configprops,bus-refresh
   endpoint:
     health:
       show-details: always
+    refresh:
+      enabled: true
+
+# Application info
+info:
+  app:
+    name: ${spring.application.name}
+    description: Centralized Configuration Server
+    version: 1.0.0
+    profiles: ${spring.profiles.active}
 
 logging:
   level:
+    org.springframework.cloud.config: INFO
     org.springframework.cloud: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"

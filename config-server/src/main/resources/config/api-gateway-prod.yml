@@ -1,0 +1,37 @@
+# API Gateway - Production Profile
+
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "${FRONTEND_URL}"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+            maxAge: 3600
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
+    password: ${REDIS_PASSWORD}
+
+gateway:
+  security:
+    enabled: true
+
+jwt:
+  secret: ${JWT_SECRET}
+
+logging:
+  level:
+    com.greenhouse.gateway: INFO
+    org.springframework.cloud.gateway: WARN

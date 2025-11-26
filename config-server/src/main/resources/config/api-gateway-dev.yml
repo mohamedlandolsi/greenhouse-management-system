@@ -1,0 +1,34 @@
+# API Gateway - Development Profile
+
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://localhost:3001"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+            maxAge: 3600
+  redis:
+    host: localhost
+    port: 6379
+
+gateway:
+  security:
+    enabled: false
+
+logging:
+  level:
+    com.greenhouse.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG

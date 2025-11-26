@@ -1,0 +1,44 @@
+# Production Profile - Shared Configuration
+# This configuration is applied when the 'prod' profile is active
+
+logging:
+  level:
+    root: WARN
+    com.greenhouse: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.kafka: INFO
+
+spring:
+  # JPA Configuration - optimized for production
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        
+# Actuator - restricted in production
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Production server settings
+server:
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,application/javascript,application/json
