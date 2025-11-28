@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { format, formatDistanceToNow, parseISO } from 'date-fns';
+import { format, formatDistanceToNow as dateFnsFormatDistanceToNow, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 // ==========================================
@@ -26,7 +26,16 @@ export function formatDateShort(date: string | Date) {
 
 export function formatRelativeTime(date: string | Date) {
   const d = typeof date === 'string' ? parseISO(date) : date;
-  return formatDistanceToNow(d, { addSuffix: true, locale: fr });
+  return dateFnsFormatDistanceToNow(d, { addSuffix: true, locale: fr });
+}
+
+export function formatDistanceToNow(date: string | Date) {
+  try {
+    const d = typeof date === 'string' ? parseISO(date) : date;
+    return dateFnsFormatDistanceToNow(d, { addSuffix: true, locale: fr });
+  } catch {
+    return 'Unknown';
+  }
 }
 
 export function formatChartTime(date: string | Date) {

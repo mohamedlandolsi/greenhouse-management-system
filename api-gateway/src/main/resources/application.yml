@@ -46,6 +46,23 @@ spring:
         max-active: 8
         max-idle: 8
         min-idle: 0
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: api-gateway-sse
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: java.util.Map
+
+# SSE Configuration
+sse:
+  keep-alive-interval: 15000
+  client-timeout: 300000
+  max-clients: 1000
 
 # JWT Configuration
 jwt:

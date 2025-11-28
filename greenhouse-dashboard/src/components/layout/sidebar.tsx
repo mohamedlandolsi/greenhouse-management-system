@@ -10,11 +10,13 @@ import {
   Zap,
   AlertTriangle,
   Leaf,
+  Radio,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Temps Réel', href: '/temps-reel', icon: Radio },
   { name: 'Paramètres', href: '/parametres', icon: Thermometer },
   { name: 'Mesures', href: '/mesures', icon: Activity },
   { name: 'Équipements', href: '/equipements', icon: Settings2 },
