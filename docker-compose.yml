@@ -1,124 +1,386 @@
+# =============================================================================
+# GREENHOUSE MANAGEMENT SYSTEM - DOCKER COMPOSE CONFIGURATION
+# =============================================================================
+# This file orchestrates all microservices for the greenhouse management system.
+# 
+# USAGE:
+#   Development:  docker-compose --profile dev up -d
+#   Production:   docker-compose --profile prod up -d
+#   All services: docker-compose --profile dev --profile monitoring up -d
+#
+# SERVICES OVERVIEW:
+#   - Infrastructure: PostgreSQL (x2), Zookeeper, Kafka
+#   - Spring Cloud: Config Server, Service Discovery (Eureka)
+#   - Business Services: Environnement Service, Contrôle Service
+#   - Gateway: API Gateway with SSE support
+#   - Frontend: Next.js Dashboard
+#   - Monitoring: Kafka UI (optional)
+#
+# Author: Greenhouse Team
+# Version: 2.0.0
+# Last Updated: November 2025
+# =============================================================================
+
 version: '3.8'
 
+# =============================================================================
+# SERVICES CONFIGURATION
+# =============================================================================
 services:
-  # ===========================================
-  # MESSAGE BROKER - KAFKA & ZOOKEEPER
-  # ===========================================
+
+  # ===========================================================================
+  # SECTION 1: DATABASES
+  # ===========================================================================
+  # PostgreSQL databases for each bounded context (microservice pattern)
+  # Using postgres:15-alpine for smaller image size and better performance
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL - Environnement Service Database
+  # ---------------------------------------------------------------------------
+  # Stores environmental sensor data: temperature, humidity, soil moisture, etc.
+  # Port 5432 exposed for local development tools (pgAdmin, DBeaver)
+  # ---------------------------------------------------------------------------
+  postgres-env:
+    image: postgres:15-alpine
+    container_name: greenhouse-postgres-env
+    hostname: postgres-env
+    # Available in both dev and prod profiles
+    profiles:
+      - dev
+      - prod
+    ports:
+      - "5432:5432"
+    environment:
+      # Database configuration
+      POSTGRES_DB: environnement_db
+      POSTGRES_USER: ${POSTGRES_ENV_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_ENV_PASSWORD:-postgres}
+      # Performance tuning
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      # Connection settings
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      # Named volume for data persistence across container restarts
+      - postgres-env-data:/var/lib/postgresql/data
+      # Optional: Mount init scripts for schema initialization
+      # - ./scripts/init-env-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - greenhouse-network
+    # Health check using pg_isready utility
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ENV_USER:-postgres} -d environnement_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # Restart policy for resilience
+    restart: unless-stopped
+    # Resource constraints
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL - Contrôle Service Database
+  # ---------------------------------------------------------------------------
+  # Stores control actions and actuator states: valves, fans, heaters, etc.
+  # Port 5433 to avoid conflict with environnement database
+  # ---------------------------------------------------------------------------
+  postgres-ctrl:
+    image: postgres:15-alpine
+    container_name: greenhouse-postgres-ctrl
+    hostname: postgres-ctrl
+    profiles:
+      - dev
+      - prod
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: controle_db
+      POSTGRES_USER: ${POSTGRES_CTRL_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_CTRL_PASSWORD:-postgres}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-ctrl-data:/var/lib/postgresql/data
+    networks:
+      - greenhouse-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_CTRL_USER:-postgres} -d controle_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # SECTION 2: MESSAGE BROKER - KAFKA ECOSYSTEM
+  # ===========================================================================
+  # Apache Kafka for asynchronous event-driven communication between services
+  # Zookeeper manages Kafka cluster coordination (required for Kafka < 3.x)
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # Zookeeper - Kafka Cluster Coordinator
+  # ---------------------------------------------------------------------------
+  # Manages Kafka broker metadata, leader election, and cluster configuration
+  # Required dependency for Kafka - must be healthy before Kafka starts
+  # ---------------------------------------------------------------------------
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
-    container_name: zookeeper
+    container_name: greenhouse-zookeeper
     hostname: zookeeper
+    profiles:
+      - dev
+      - prod
     ports:
+      # Client port for Kafka connection
       - "2181:2181"
     environment:
+      # Zookeeper configuration
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
       ZOOKEEPER_INIT_LIMIT: 5
       ZOOKEEPER_SYNC_LIMIT: 2
+      # JVM settings for container environment
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx256m"
     volumes:
+      # Persist Zookeeper data and transaction logs
       - zookeeper-data:/var/lib/zookeeper/data
       - zookeeper-logs:/var/lib/zookeeper/log
     networks:
       - greenhouse-network
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      # Check if Zookeeper is accepting connections
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ---------------------------------------------------------------------------
+  # Apache Kafka - Message Broker
+  # ---------------------------------------------------------------------------
+  # Handles event streaming between microservices:
+  #   - sensor-data: Environmental readings from sensors
+  #   - control-commands: Commands to actuators
+  #   - alerts: System alerts and notifications
+  # ---------------------------------------------------------------------------
   kafka:
     image: confluentinc/cp-kafka:7.5.0
-    container_name: kafka
+    container_name: greenhouse-kafka
     hostname: kafka
+    profiles:
+      - dev
+      - prod
     ports:
+      # External listener for host access
       - "9092:9092"
+      # Internal listener for container-to-container communication
       - "29092:29092"
     environment:
+      # Broker identification
       KAFKA_BROKER_ID: 1
+      KAFKA_CLUSTER_ID: greenhouse-cluster
+      
+      # Zookeeper connection
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      
+      # Listener configuration
+      # PLAINTEXT: Internal Docker network communication
+      # PLAINTEXT_HOST: External host machine communication
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      
+      # Topic configuration
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_NUM_PARTITIONS: 3
       KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      
+      # Replication settings (single broker setup)
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      
+      # Consumer group settings
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      
+      # Log retention (7 days, 1GB max)
       KAFKA_LOG_RETENTION_HOURS: 168
       KAFKA_LOG_RETENTION_BYTES: 1073741824
+      KAFKA_LOG_SEGMENT_BYTES: 536870912
+      
+      # Message settings
       KAFKA_MESSAGE_MAX_BYTES: 1048576
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 1048576
+      
+      # JVM settings
+      KAFKA_HEAP_OPTS: "-Xms512m -Xmx512m"
     volumes:
       - kafka-data:/var/lib/kafka/data
+    networks:
+      - greenhouse-network
+    # Wait for Zookeeper to be healthy before starting
     depends_on:
       zookeeper:
         condition: service_healthy
-    networks:
-      - greenhouse-network
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      # Verify Kafka broker is operational
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 45s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
 
+  # ---------------------------------------------------------------------------
+  # Kafka UI - Web Interface for Kafka Monitoring (Optional)
+  # ---------------------------------------------------------------------------
+  # Provides visual interface for:
+  #   - Topic management and message browsing
+  #   - Consumer group monitoring
+  #   - Broker health status
+  # Access at: http://localhost:9093
+  # ---------------------------------------------------------------------------
   kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: greenhouse-kafka-ui
+    hostname: kafka-ui
+    # Only available in monitoring profile (optional)
+    profiles:
+      - monitoring
+      - dev
     ports:
       - "9093:8080"
     environment:
-      KAFKA_CLUSTERS_0_NAME: greenhouse-kafka
+      # Kafka cluster configuration
+      KAFKA_CLUSTERS_0_NAME: greenhouse-cluster
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      # UI settings
       DYNAMIC_CONFIG_ENABLED: "true"
+      SERVER_SERVLET_CONTEXT_PATH: /
+    networks:
+      - greenhouse-network
     depends_on:
-      - kafka
-    networks:
-      - greenhouse-network
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
 
-  # ===========================================
-  # DATABASES
-  # ===========================================
-  postgres-environnement:
-    image: postgres:15-alpine
-    container_name: postgres-environnement
-    environment:
-      POSTGRES_DB: environnement_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-environnement-data:/var/lib/postgresql/data
-    networks:
-      - greenhouse-network
+  # ===========================================================================
+  # SECTION 3: SPRING CLOUD INFRASTRUCTURE
+  # ===========================================================================
+  # Core infrastructure services for microservices architecture:
+  #   - Service Discovery (Eureka): Service registry and discovery
+  #   - Config Server: Centralized configuration management
+  # ===========================================================================
 
-  postgres-controle:
-    image: postgres:15-alpine
-    container_name: postgres-controle
-    environment:
-      POSTGRES_DB: controle_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres-controle-data:/var/lib/postgresql/data
-    networks:
-      - greenhouse-network
-
+  # ---------------------------------------------------------------------------
+  # Service Discovery - Netflix Eureka Server
+  # ---------------------------------------------------------------------------
+  # Central registry where all microservices register themselves
+  # Enables dynamic service discovery and load balancing
+  # Eureka Dashboard: http://localhost:8761
+  # ---------------------------------------------------------------------------
   service-discovery:
     build:
-      context: .
-      dockerfile: service-discovery/Dockerfile
-    container_name: service-discovery
+      context: ./service-discovery
+      dockerfile: Dockerfile
+      # Build arguments for multi-stage optimization
+      args:
+        - JAR_FILE=target/*.jar
+    image: greenhouse/service-discovery:${VERSION:-latest}
+    container_name: greenhouse-service-discovery
+    hostname: service-discovery
+    profiles:
+      - dev
+      - prod
     ports:
       - "8761:8761"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - JAVA_OPTS=-XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseContainerSupport
+      # Spring profile
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      
+      # JVM optimization for containers
+      JAVA_OPTS: >-
+        -XX:MaxRAMPercentage=75.0
+        -XX:+UseG1GC
+        -XX:+UseContainerSupport
+        -XX:+HeapDumpOnOutOfMemoryError
+        -Djava.security.egd=file:/dev/./urandom
+      
+      # Eureka self-preservation (disable for dev, enable for prod)
+      EUREKA_SERVER_ENABLE_SELF_PRESERVATION: ${EUREKA_SELF_PRESERVATION:-false}
+      
+      # Logging level
+      LOGGING_LEVEL_ROOT: ${LOG_LEVEL:-INFO}
     networks:
       - greenhouse-network
     healthcheck:
@@ -127,186 +389,475 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    restart: unless-stopped
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
         reservations:
+          cpus: '0.25'
           memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ---------------------------------------------------------------------------
+  # Config Server - Spring Cloud Config
+  # ---------------------------------------------------------------------------
+  # Centralized configuration management for all microservices
+  # Supports multiple backends: Git, native filesystem, vault
+  # Config endpoint: http://localhost:8888/{application}/{profile}
+  # ---------------------------------------------------------------------------
   config-server:
     build:
-      context: .
-      dockerfile: config-server/Dockerfile
-    container_name: config-server
+      context: ./config-server
+      dockerfile: Dockerfile
+      args:
+        - JAR_FILE=target/*.jar
+    image: greenhouse/config-server:${VERSION:-latest}
+    container_name: greenhouse-config-server
+    hostname: config-server
+    profiles:
+      - dev
+      - prod
     ports:
       - "8888:8888"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-discovery:8761/eureka/
-      - JAVA_OPTS=-XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseContainerSupport
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      
+      # Service Discovery registration
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-discovery:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      
+      # JVM optimization
+      JAVA_OPTS: >-
+        -XX:MaxRAMPercentage=75.0
+        -XX:+UseG1GC
+        -XX:+UseContainerSupport
+        -Djava.security.egd=file:/dev/./urandom
+      
+      LOGGING_LEVEL_ROOT: ${LOG_LEVEL:-INFO}
+    networks:
+      - greenhouse-network
+    # Must wait for Service Discovery to be healthy
     depends_on:
       service-discovery:
         condition: service_healthy
-    networks:
-      - greenhouse-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
+    restart: unless-stopped
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
         reservations:
+          cpus: '0.25'
           memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  api-gateway:
-    build:
-      context: .
-      dockerfile: api-gateway/Dockerfile
-    container_name: api-gateway
-    ports:
-      - "8080:8080"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-discovery:8761/eureka/
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - JAVA_OPTS=-XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseContainerSupport -Dio.netty.leakDetection.level=disabled
-    depends_on:
-      service-discovery:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    networks:
-      - greenhouse-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
+  # ===========================================================================
+  # SECTION 4: BUSINESS MICROSERVICES
+  # ===========================================================================
+  # Core business logic services implementing bounded contexts:
+  #   - Environnement Service: Environmental monitoring and sensor data
+  #   - Contrôle Service: Control actions and actuator management
+  # ===========================================================================
 
+  # ---------------------------------------------------------------------------
+  # Environnement Service - Environmental Monitoring
+  # ---------------------------------------------------------------------------
+  # Responsibilities:
+  #   - Collect and store sensor data (temperature, humidity, light, soil)
+  #   - Publish sensor events to Kafka
+  #   - Provide REST API for environmental data queries
+  # API endpoint: http://localhost:8081/api/environnement
+  # ---------------------------------------------------------------------------
   environnement-service:
     build:
-      context: .
-      dockerfile: environnement-service/Dockerfile
-    container_name: environnement-service
+      context: ./environnement-service
+      dockerfile: Dockerfile
+      args:
+        - JAR_FILE=target/*.jar
+    image: greenhouse/environnement-service:${VERSION:-latest}
+    container_name: greenhouse-environnement-service
+    hostname: environnement-service
+    profiles:
+      - dev
+      - prod
     ports:
       - "8081:8081"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-environnement:5432/environnement_db
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-discovery:8761/eureka/
-      - JAVA_OPTS=-XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseContainerSupport
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      
+      # Database configuration
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-env:5432/environnement_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_ENV_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_ENV_PASSWORD:-postgres}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 10
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 2
+      
+      # JPA/Hibernate settings
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: ${SHOW_SQL:-false}
+      
+      # Kafka configuration
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_PRODUCER_ACKS: all
+      SPRING_KAFKA_CONSUMER_GROUP_ID: environnement-service-group
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+      
+      # Service Discovery
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-discovery:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      
+      # JVM optimization
+      JAVA_OPTS: >-
+        -XX:MaxRAMPercentage=75.0
+        -XX:+UseG1GC
+        -XX:+UseContainerSupport
+        -XX:+HeapDumpOnOutOfMemoryError
+        -Djava.security.egd=file:/dev/./urandom
+      
+      LOGGING_LEVEL_ROOT: ${LOG_LEVEL:-INFO}
+    networks:
+      - greenhouse-network
+    # Service dependencies - wait for infrastructure
     depends_on:
-      postgres-environnement:
-        condition: service_started
-      service-discovery:
+      postgres-env:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    networks:
-      - greenhouse-network
+      service-discovery:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 90s
+    restart: unless-stopped
     deploy:
       resources:
         limits:
+          cpus: '1.5'
           memory: 768M
         reservations:
+          cpus: '0.5'
           memory: 384M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "5"
 
+  # ---------------------------------------------------------------------------
+  # Contrôle Service - Control & Actuator Management
+  # ---------------------------------------------------------------------------
+  # Responsibilities:
+  #   - Manage actuator states (valves, fans, heaters, lights)
+  #   - Process control commands from Kafka
+  #   - Provide REST API for control operations
+  # API endpoint: http://localhost:8082/api/controle
+  # ---------------------------------------------------------------------------
   controle-service:
     build:
-      context: .
-      dockerfile: controle-service/Dockerfile
-    container_name: controle-service
+      context: ./controle-service
+      dockerfile: Dockerfile
+      args:
+        - JAR_FILE=target/*.jar
+    image: greenhouse/controle-service:${VERSION:-latest}
+    container_name: greenhouse-controle-service
+    hostname: controle-service
+    profiles:
+      - dev
+      - prod
     ports:
       - "8082:8082"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-controle:5432/controle_db
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-discovery:8761/eureka/
-      - JAVA_OPTS=-XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseContainerSupport
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      
+      # Database configuration
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-ctrl:5432/controle_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_CTRL_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_CTRL_PASSWORD:-postgres}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 10
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 2
+      
+      # JPA/Hibernate settings
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: ${SHOW_SQL:-false}
+      
+      # Kafka configuration
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_PRODUCER_ACKS: all
+      SPRING_KAFKA_CONSUMER_GROUP_ID: controle-service-group
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+      
+      # Service Discovery
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-discovery:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      
+      # JVM optimization
+      JAVA_OPTS: >-
+        -XX:MaxRAMPercentage=75.0
+        -XX:+UseG1GC
+        -XX:+UseContainerSupport
+        -XX:+HeapDumpOnOutOfMemoryError
+        -Djava.security.egd=file:/dev/./urandom
+      
+      LOGGING_LEVEL_ROOT: ${LOG_LEVEL:-INFO}
+    networks:
+      - greenhouse-network
     depends_on:
-      postgres-controle:
-        condition: service_started
-      service-discovery:
+      postgres-ctrl:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    networks:
-      - greenhouse-network
+      service-discovery:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 90s
+    restart: unless-stopped
     deploy:
       resources:
         limits:
+          cpus: '1.5'
           memory: 768M
         reservations:
+          cpus: '0.5'
           memory: 384M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "5"
 
-  # ===========================================
-  # FRONTEND - REACT/NEXT.JS DASHBOARD
-  # ===========================================
-  greenhouse-dashboard:
+  # ===========================================================================
+  # SECTION 5: API GATEWAY
+  # ===========================================================================
+  # Spring Cloud Gateway - Single entry point for all client requests
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # API Gateway - Request Routing & SSE Streaming
+  # ---------------------------------------------------------------------------
+  # Responsibilities:
+  #   - Route requests to appropriate microservices
+  #   - Handle cross-cutting concerns (CORS, rate limiting)
+  #   - Provide Server-Sent Events (SSE) for real-time updates
+  #   - Load balancing via Eureka integration
+  # Main endpoint: http://localhost:8080
+  # SSE endpoint: http://localhost:8080/api/sse/stream
+  # ---------------------------------------------------------------------------
+  api-gateway:
     build:
-      context: .
-      dockerfile: greenhouse-dashboard/Dockerfile
-    container_name: greenhouse-dashboard
+      context: ./api-gateway
+      dockerfile: Dockerfile
+      args:
+        - JAR_FILE=target/*.jar
+    image: greenhouse/api-gateway:${VERSION:-latest}
+    container_name: greenhouse-api-gateway
+    hostname: api-gateway
+    profiles:
+      - dev
+      - prod
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      
+      # Service Discovery
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-discovery:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      
+      # Kafka for SSE streaming
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_CONSUMER_GROUP_ID: api-gateway-sse-group
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: latest
+      
+      # Gateway configuration
+      SPRING_CLOUD_GATEWAY_HTTPCLIENT_CONNECT_TIMEOUT: 10000
+      SPRING_CLOUD_GATEWAY_HTTPCLIENT_RESPONSE_TIMEOUT: 30000
+      
+      # CORS settings for frontend
+      CORS_ALLOWED_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://frontend:3000}
+      
+      # JVM optimization (with Netty-specific settings)
+      JAVA_OPTS: >-
+        -XX:MaxRAMPercentage=75.0
+        -XX:+UseG1GC
+        -XX:+UseContainerSupport
+        -Dio.netty.leakDetection.level=disabled
+        -Dio.netty.allocator.maxOrder=3
+        -Djava.security.egd=file:/dev/./urandom
+      
+      LOGGING_LEVEL_ROOT: ${LOG_LEVEL:-INFO}
+    networks:
+      - greenhouse-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 640M
+        reservations:
+          cpus: '0.5'
+          memory: 320M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "5"
+
+  # ===========================================================================
+  # SECTION 6: FRONTEND APPLICATION
+  # ===========================================================================
+  # Next.js React Dashboard for greenhouse monitoring and control
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # Frontend - React/Next.js Dashboard
+  # ---------------------------------------------------------------------------
+  # Features:
+  #   - Real-time sensor data visualization
+  #   - Actuator control interface
+  #   - SSE integration for live updates
+  #   - Responsive design for mobile/desktop
+  # Access at: http://localhost:3000
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./greenhouse-dashboard
+      dockerfile: Dockerfile
+      # Build-time arguments
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+    image: greenhouse/dashboard:${VERSION:-latest}
+    container_name: greenhouse-frontend
+    hostname: frontend
+    profiles:
+      - dev
+      - prod
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://api-gateway:8080
+      # Runtime configuration
+      NODE_ENV: ${NODE_ENV:-production}
+      
+      # API Gateway URL (for client-side requests, use localhost)
+      # For SSR/server-side, use container hostname
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      
+      # SSE endpoint for real-time updates
+      NEXT_PUBLIC_SSE_URL: ${NEXT_PUBLIC_SSE_URL:-http://localhost:8080/api/sse/stream}
+      
+      # Feature flags
+      NEXT_PUBLIC_ENABLE_SSE: ${ENABLE_SSE:-true}
+      NEXT_PUBLIC_POLLING_INTERVAL: ${POLLING_INTERVAL:-30000}
+    networks:
+      - greenhouse-network
     depends_on:
       api-gateway:
         condition: service_healthy
-    networks:
-      - greenhouse-network
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
+    restart: unless-stopped
     deploy:
       resources:
         limits:
-          memory: 256M
+          cpus: '1.0'
+          memory: 512M
         reservations:
+          cpus: '0.25'
           memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
 
+# =============================================================================
+# NETWORKS CONFIGURATION
+# =============================================================================
+# Custom bridge network for isolated inter-service communication
+# All services communicate via container hostnames on this network
+# =============================================================================
 networks:
   greenhouse-network:
+    name: greenhouse-network
     driver: bridge
+    # Enable IPv6 support (optional)
+    # ipam:
+    #   driver: default
+    #   config:
+    #     - subnet: 172.28.0.0/16
 
+# =============================================================================
+# VOLUMES CONFIGURATION
+# =============================================================================
+# Named volumes for data persistence across container lifecycle
+# Data survives container restarts, updates, and recreation
+# 
+# To backup: docker run --rm -v <volume>:/data -v $(pwd):/backup alpine tar czf /backup/<volume>.tar.gz /data
+# To restore: docker run --rm -v <volume>:/data -v $(pwd):/backup alpine tar xzf /backup/<volume>.tar.gz -C /
+# =============================================================================
 volumes:
+  # PostgreSQL Environnement Service data
+  postgres-env-data:
+    name: greenhouse-postgres-env-data
+    driver: local
+  
+  # PostgreSQL Contrôle Service data
+  postgres-ctrl-data:
+    name: greenhouse-postgres-ctrl-data
+    driver: local
+  
+  # Zookeeper data and transaction logs
   zookeeper-data:
+    name: greenhouse-zookeeper-data
+    driver: local
   zookeeper-logs:
+    name: greenhouse-zookeeper-logs
+    driver: local
+  
+  # Kafka message and log data
   kafka-data:
-  postgres-environnement-data:
-  postgres-controle-data:
+    name: greenhouse-kafka-data
+    driver: local
