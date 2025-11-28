@@ -41,6 +41,7 @@ services:
   # ---------------------------------------------------------------------------
   postgres-env:
     image: postgres:15-alpine
+    pull_policy: if_not_present
     container_name: greenhouse-postgres-env
     hostname: postgres-env
     # Available in both dev and prod profiles
@@ -98,6 +99,7 @@ services:
   # ---------------------------------------------------------------------------
   postgres-ctrl:
     image: postgres:15-alpine
+    pull_policy: if_not_present
     container_name: greenhouse-postgres-ctrl
     hostname: postgres-ctrl
     profiles:
@@ -151,6 +153,7 @@ services:
   # ---------------------------------------------------------------------------
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
+    pull_policy: if_not_present
     container_name: greenhouse-zookeeper
     hostname: zookeeper
     profiles:
@@ -205,6 +208,7 @@ services:
   # ---------------------------------------------------------------------------
   kafka:
     image: confluentinc/cp-kafka:7.5.0
+    pull_policy: if_not_present
     container_name: greenhouse-kafka
     hostname: kafka
     profiles:
@@ -296,6 +300,7 @@ services:
   # ---------------------------------------------------------------------------
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
+    pull_policy: if_not_present
     container_name: greenhouse-kafka-ui
     hostname: kafka-ui
     # Only available in monitoring profile (optional)
@@ -354,7 +359,6 @@ services:
       # Build arguments for multi-stage optimization
       args:
         - JAR_FILE=target/*.jar
-    image: greenhouse/service-discovery:${VERSION:-latest}
     container_name: greenhouse-service-discovery
     hostname: service-discovery
     profiles:
@@ -415,7 +419,6 @@ services:
       dockerfile: config-server/Dockerfile
       args:
         - JAR_FILE=target/*.jar
-    image: greenhouse/config-server:${VERSION:-latest}
     container_name: greenhouse-config-server
     hostname: config-server
     profiles:
@@ -488,7 +491,6 @@ services:
       dockerfile: environnement-service/Dockerfile
       args:
         - JAR_FILE=target/*.jar
-    image: greenhouse/environnement-service:${VERSION:-latest}
     container_name: greenhouse-environnement-service
     hostname: environnement-service
     profiles:
@@ -577,7 +579,6 @@ services:
       dockerfile: controle-service/Dockerfile
       args:
         - JAR_FILE=target/*.jar
-    image: greenhouse/controle-service:${VERSION:-latest}
     container_name: greenhouse-controle-service
     hostname: controle-service
     profiles:
@@ -673,7 +674,6 @@ services:
       dockerfile: api-gateway/Dockerfile
       args:
         - JAR_FILE=target/*.jar
-    image: greenhouse/api-gateway:${VERSION:-latest}
     container_name: greenhouse-api-gateway
     hostname: api-gateway
     profiles:
@@ -763,7 +763,6 @@ services:
       # Build-time arguments
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8080}
-    image: greenhouse/dashboard:${VERSION:-latest}
     container_name: greenhouse-frontend
     hostname: frontend
     profiles:
