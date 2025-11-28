@@ -1,0 +1,67 @@
+# =============================================================================
+# .dockerignore - Root Level
+# Optimizes Docker build context for multi-module Maven project
+# =============================================================================
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+.settings/
+.project
+.classpath
+
+# Documentation
+*.md
+LICENSE
+docs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+.circleci/
+
+# Environment files
+.env
+.env.*
+*.env
+
+# Docker files (except Dockerfiles in subdirs)
+docker-compose*.yml
+.dockerignore
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Node modules (frontend)
+greenhouse-dashboard/node_modules/
+greenhouse-dashboard/.next/
+greenhouse-dashboard/out/
+
+# Build outputs that are not needed
+**/target/surefire-reports/
+**/target/test-classes/
+**/target/maven-status/
+**/target/generated-sources/
+**/target/generated-test-sources/

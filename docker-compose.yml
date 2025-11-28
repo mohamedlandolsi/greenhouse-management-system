@@ -21,8 +21,6 @@
 # Last Updated: November 2025
 # =============================================================================
 
-version: '3.8'
-
 # =============================================================================
 # SERVICES CONFIGURATION
 # =============================================================================
@@ -351,8 +349,8 @@ services:
   # ---------------------------------------------------------------------------
   service-discovery:
     build:
-      context: ./service-discovery
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: service-discovery/Dockerfile
       # Build arguments for multi-stage optimization
       args:
         - JAR_FILE=target/*.jar
@@ -413,8 +411,8 @@ services:
   # ---------------------------------------------------------------------------
   config-server:
     build:
-      context: ./config-server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: config-server/Dockerfile
       args:
         - JAR_FILE=target/*.jar
     image: greenhouse/config-server:${VERSION:-latest}
@@ -486,8 +484,8 @@ services:
   # ---------------------------------------------------------------------------
   environnement-service:
     build:
-      context: ./environnement-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: environnement-service/Dockerfile
       args:
         - JAR_FILE=target/*.jar
     image: greenhouse/environnement-service:${VERSION:-latest}
@@ -575,8 +573,8 @@ services:
   # ---------------------------------------------------------------------------
   controle-service:
     build:
-      context: ./controle-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: controle-service/Dockerfile
       args:
         - JAR_FILE=target/*.jar
     image: greenhouse/controle-service:${VERSION:-latest}
@@ -671,8 +669,8 @@ services:
   # ---------------------------------------------------------------------------
   api-gateway:
     build:
-      context: ./api-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: api-gateway/Dockerfile
       args:
         - JAR_FILE=target/*.jar
     image: greenhouse/api-gateway:${VERSION:-latest}
