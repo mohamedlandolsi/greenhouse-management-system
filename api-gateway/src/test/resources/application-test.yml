@@ -1,0 +1,35 @@
+# Test Profile Configuration for API Gateway
+spring:
+  profiles:
+    active: test
+
+  # Disable Eureka for tests
+  cloud:
+    discovery:
+      enabled: false
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+
+  # Redis disabled for tests
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+# Eureka disabled
+eureka:
+  client:
+    enabled: false
+
+# Server configuration
+server:
+  port: 0
+
+# Logging
+logging:
+  level:
+    root: WARN
+    com.greenhouse: DEBUG
+    org.springframework.cloud.gateway: DEBUG

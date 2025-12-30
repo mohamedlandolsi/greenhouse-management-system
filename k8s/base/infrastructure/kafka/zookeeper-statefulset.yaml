@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zookeeper
+  labels:
+    app: zookeeper
+spec:
+  serviceName: zookeeper
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zookeeper
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+    spec:
+      containers:
+        - name: zookeeper
+          image: confluentinc/cp-zookeeper:7.5.0
+          ports:
+            - containerPort: 2181
+              name: client
+          env:
+            - name: ZOOKEEPER_CLIENT_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: kafka-config
+                  key: ZOOKEEPER_CLIENT_PORT
+            - name: ZOOKEEPER_TICK_TIME
+              valueFrom:
+                configMapKeyRef:
+                  name: kafka-config
+                  key: ZOOKEEPER_TICK_TIME
+            - name: KAFKA_HEAP_OPTS
+              valueFrom:
+                configMapKeyRef:
+                  name: kafka-config
+                  key: ZOOKEEPER_HEAP_OPTS
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: zookeeper-data
+              mountPath: /var/lib/zookeeper/data
+            - name: zookeeper-logs
+              mountPath: /var/lib/zookeeper/log
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "echo srvr | nc localhost 2181 | grep Mode"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "echo srvr | nc localhost 2181 | grep Mode"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+  volumeClaimTemplates:
+    - metadata:
+        name: zookeeper-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+    - metadata:
+        name: zookeeper-logs
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

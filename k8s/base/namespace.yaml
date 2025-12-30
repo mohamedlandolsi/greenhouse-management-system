@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: greenhouse
+  labels:
+    app.kubernetes.io/name: greenhouse
+    app.kubernetes.io/part-of: greenhouse-management-system

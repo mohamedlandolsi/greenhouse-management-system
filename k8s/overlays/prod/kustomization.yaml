@@ -1,0 +1,90 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: greenhouse-prod
+
+namespace: greenhouse-prod
+
+resources:
+  - ../../base
+  - namespace.yaml
+  - secrets/db-secrets.yaml
+
+patches:
+  - path: patches/replicas-patch.yaml
+  - path: patches/resources-patch.yaml
+
+# Override ingress host for production
+patchesJson6902:
+  - target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: greenhouse-ingress
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: greenhouse.example.com
+      - op: add
+        path: /spec/tls
+        value:
+          - hosts:
+              - greenhouse.example.com
+            secretName: greenhouse-tls
+
+# Increase HPA limits for production
+  - target:
+      group: autoscaling
+      version: v2
+      kind: HorizontalPodAutoscaler
+      name: api-gateway-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 20
+  - target:
+      group: autoscaling
+      version: v2
+      kind: HorizontalPodAutoscaler
+      name: environnement-service-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 20
+  - target:
+      group: autoscaling
+      version: v2
+      kind: HorizontalPodAutoscaler
+      name: controle-service-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 20
+  - target:
+      group: autoscaling
+      version: v2
+      kind: HorizontalPodAutoscaler
+      name: frontend-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 15
+
+commonLabels:
+  environment: production
+
+commonAnnotations:
+  greenhouse.io/environment: production

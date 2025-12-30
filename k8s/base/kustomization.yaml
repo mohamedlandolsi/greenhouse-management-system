@@ -1,0 +1,79 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: greenhouse-base
+
+namespace: greenhouse
+
+resources:
+  # Namespace
+  - namespace.yaml
+  
+  # Infrastructure - Databases
+  - infrastructure/postgres-env/configmap.yaml
+  - infrastructure/postgres-env/secret.yaml
+  - infrastructure/postgres-env/service.yaml
+  - infrastructure/postgres-env/statefulset.yaml
+  - infrastructure/postgres-ctrl/configmap.yaml
+  - infrastructure/postgres-ctrl/secret.yaml
+  - infrastructure/postgres-ctrl/service.yaml
+  - infrastructure/postgres-ctrl/statefulset.yaml
+  
+  # Infrastructure - Messaging
+  - infrastructure/kafka/configmap.yaml
+  - infrastructure/kafka/zookeeper-service.yaml
+  - infrastructure/kafka/zookeeper-statefulset.yaml
+  - infrastructure/kafka/kafka-service.yaml
+  - infrastructure/kafka/kafka-statefulset.yaml
+  
+  # Infrastructure - Cache
+  - infrastructure/redis/service.yaml
+  - infrastructure/redis/deployment.yaml
+  
+  # Services - Spring Cloud
+  - services/service-discovery/configmap.yaml
+  - services/service-discovery/service.yaml
+  - services/service-discovery/deployment.yaml
+  - services/service-discovery/hpa.yaml
+  - services/config-server/configmap.yaml
+  - services/config-server/service.yaml
+  - services/config-server/deployment.yaml
+  - services/config-server/hpa.yaml
+  
+  # Services - API Gateway
+  - services/api-gateway/configmap.yaml
+  - services/api-gateway/service.yaml
+  - services/api-gateway/deployment.yaml
+  - services/api-gateway/hpa.yaml
+  
+  # Services - Business Logic
+  - services/environnement-service/configmap.yaml
+  - services/environnement-service/secret.yaml
+  - services/environnement-service/service.yaml
+  - services/environnement-service/deployment.yaml
+  - services/environnement-service/hpa.yaml
+  - services/controle-service/configmap.yaml
+  - services/controle-service/secret.yaml
+  - services/controle-service/service.yaml
+  - services/controle-service/deployment.yaml
+  - services/controle-service/hpa.yaml
+  
+  # Services - Frontend
+  - services/frontend/configmap.yaml
+  - services/frontend/service.yaml
+  - services/frontend/deployment.yaml
+  - services/frontend/hpa.yaml
+  
+  # Networking
+  - networking/ingress.yaml
+  - networking/network-policies.yaml
+  
+  # Policies
+  - policies/resource-quota.yaml
+  - policies/limit-range.yaml
+  - policies/pod-disruption-budget.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: greenhouse-management-system
+  app.kubernetes.io/managed-by: kustomize

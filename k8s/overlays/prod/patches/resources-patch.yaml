@@ -1,0 +1,111 @@
+# Patch to increase resource limits for production environment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+spec:
+  template:
+    spec:
+      containers:
+        - name: api-gateway
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1500m"
+          env:
+            - name: JAVA_OPTS
+              value: "-Xms384m -Xmx768m -XX:+UseG1GC"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: environnement-service
+spec:
+  template:
+    spec:
+      containers:
+        - name: environnement-service
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1500m"
+          env:
+            - name: JAVA_OPTS
+              value: "-Xms384m -Xmx768m -XX:+UseG1GC"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controle-service
+spec:
+  template:
+    spec:
+      containers:
+        - name: controle-service
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1500m"
+          env:
+            - name: JAVA_OPTS
+              value: "-Xms384m -Xmx768m -XX:+UseG1GC"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+spec:
+  template:
+    spec:
+      containers:
+        - name: kafka
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1500m"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-env
+spec:
+  template:
+    spec:
+      containers:
+        - name: postgres
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-ctrl
+spec:
+  template:
+    spec:
+      containers:
+        - name: postgres
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
