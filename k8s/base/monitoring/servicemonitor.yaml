@@ -1,0 +1,43 @@
+# ServiceMonitor for Prometheus Operator
+# Scrapes metrics from all greenhouse microservices
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: greenhouse-services
+  labels:
+    app: greenhouse
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames:
+      - greenhouse-dev
+      - greenhouse-prod
+  selector:
+    matchLabels:
+      metrics: "true"
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+---
+# PodMonitor for pods without services
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: greenhouse-pods
+  labels:
+    app: greenhouse
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames:
+      - greenhouse-dev
+      - greenhouse-prod
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: greenhouse
+  podMetricsEndpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 15s

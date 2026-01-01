@@ -67,10 +67,38 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,env,loggers
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  info:
+    env:
+      enabled: true
+    build:
+      enabled: true
+    git:
+      enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+
+# Zipkin Tracing
+zipkin:
+  tracing:
+    endpoint: http://${ZIPKIN_HOST:localhost}:9411/api/v2/spans
 
 springdoc:
   api-docs:

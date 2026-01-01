@@ -1,0 +1,160 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "title": "Service Health",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [
+            {"options": {"0": {"color": "red", "index": 1, "text": "DOWN"}}, "type": "value"},
+            {"options": {"1": {"color": "green", "index": 0, "text": "UP"}}, "type": "value"}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}
+        }
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 1},
+      "id": 2,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value_and_name"},
+      "title": "API Gateway",
+      "type": "stat",
+      "targets": [{"expr": "up{job=\"api-gateway\"}", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [
+            {"options": {"0": {"color": "red", "index": 1, "text": "DOWN"}}, "type": "value"},
+            {"options": {"1": {"color": "green", "index": 0, "text": "UP"}}, "type": "value"}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}
+        }
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 1},
+      "id": 3,
+      "title": "Environnement",
+      "type": "stat",
+      "targets": [{"expr": "up{job=\"environnement-service\"}", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [
+            {"options": {"0": {"color": "red", "index": 1, "text": "DOWN"}}, "type": "value"},
+            {"options": {"1": {"color": "green", "index": 0, "text": "UP"}}, "type": "value"}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}
+        }
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 1},
+      "id": 4,
+      "title": "Controle",
+      "type": "stat",
+      "targets": [{"expr": "up{job=\"controle-service\"}", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [
+            {"options": {"0": {"color": "red", "index": 1, "text": "DOWN"}}, "type": "value"},
+            {"options": {"1": {"color": "green", "index": 0, "text": "UP"}}, "type": "value"}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}
+        }
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 1},
+      "id": 5,
+      "title": "Service Discovery",
+      "type": "stat",
+      "targets": [{"expr": "up{job=\"service-discovery\"}", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [
+            {"options": {"0": {"color": "red", "index": 1, "text": "DOWN"}}, "type": "value"},
+            {"options": {"1": {"color": "green", "index": 0, "text": "UP"}}, "type": "value"}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}
+        }
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 1},
+      "id": 6,
+      "title": "Config Server",
+      "type": "stat",
+      "targets": [{"expr": "up{job=\"config-server\"}", "refId": "A"}]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+      "id": 10,
+      "title": "Request Metrics",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "unit": "reqps"}},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+      "id": 11,
+      "title": "Request Rate",
+      "type": "timeseries",
+      "targets": [{"expr": "sum(rate(http_server_requests_seconds_count[5m])) by (job)", "legendFormat": "{{job}}", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "unit": "percent"}},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+      "id": 12,
+      "title": "Error Rate",
+      "type": "timeseries",
+      "targets": [{"expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) by (job) / sum(rate(http_server_requests_seconds_count[5m])) by (job) * 100", "legendFormat": "{{job}}", "refId": "A"}]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 14},
+      "id": 20,
+      "title": "Response Times",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "unit": "s"}},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 15},
+      "id": 21,
+      "title": "Response Time (P95)",
+      "type": "timeseries",
+      "targets": [{"expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le, job))", "legendFormat": "{{job}} P95", "refId": "A"}]
+    }
+  ],
+  "schemaVersion": 38,
+  "tags": ["greenhouse", "overview"],
+  "templating": {"list": []},
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Greenhouse - System Health",
+  "uid": "greenhouse-health",
+  "version": 1
+}

@@ -1,0 +1,94 @@
+# Prometheus Alert Rules for Greenhouse Microservices
+groups:
+  - name: greenhouse_alerts
+    rules:
+      # Service Down Alert
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.instance }} has been down for more than 1 minute."
+
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: |
+          (sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (job)
+          / sum(rate(http_server_requests_seconds_count[5m])) by (job)) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "Error rate is above 5% for {{ $labels.job }}"
+
+      # High Response Time (P95 > 2s)
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le, job)) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time on {{ $labels.job }}"
+          description: "95th percentile response time is above 2s for {{ $labels.job }}"
+
+      # JVM Heap Memory High
+      - alert: JvmHeapMemoryHigh
+        expr: |
+          (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JVM heap memory high on {{ $labels.job }}"
+          description: "Heap memory usage is above 90% for {{ $labels.job }}"
+
+      # Database Connection Pool Exhaustion
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          hikaricp_connections_active / hikaricp_connections_max > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool near exhaustion on {{ $labels.job }}"
+          description: "Connection pool is 90% utilized for {{ $labels.job }}"
+
+      # Kafka Consumer Lag
+      - alert: KafkaConsumerLag
+        expr: |
+          kafka_consumer_fetch_manager_records_lag_max > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Kafka consumer lag on {{ $labels.job }}"
+          description: "Consumer lag exceeds 1000 messages for {{ $labels.job }}"
+
+  - name: greenhouse_business_alerts
+    rules:
+      # High Alert Frequency
+      - alert: HighAlertFrequency
+        expr: |
+          rate(greenhouse_alerts_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High greenhouse alert frequency"
+          description: "More than 10 alerts per minute detected"
+
+      # Equipment Failure Rate
+      - alert: EquipmentFailureRate
+        expr: |
+          (sum(rate(greenhouse_action_execution_total{status="failed"}[15m])) 
+          / sum(rate(greenhouse_action_execution_total[15m]))) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High equipment failure rate"
+          description: "More than 10% of equipment actions are failing"

@@ -1,0 +1,72 @@
+# Prometheus Configuration for Greenhouse Microservices
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "/etc/prometheus/alert_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # API Gateway
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api-gateway:8080']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'api-gateway'
+
+  # Service Discovery
+  - job_name: 'service-discovery'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['service-discovery:8761']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'service-discovery'
+
+  # Config Server
+  - job_name: 'config-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['config-server:8888']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'config-server'
+
+  # Environnement Service
+  - job_name: 'environnement-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['environnement-service:8081']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'environnement-service'
+
+  # Controle Service
+  - job_name: 'controle-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['controle-service:8082']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'controle-service'

@@ -44,8 +44,35 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- Micrometer BOM for version management -->
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-bom</artifactId>
+                <version>1.12.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <!-- Common dependencies for all modules -->
+    <dependencies>
+        <!-- Micrometer Prometheus Registry -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <!-- Micrometer Tracing with Brave -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+        <!-- Zipkin Reporter -->
+        <dependency>
+            <groupId>io.zipkin.reporter2</groupId>
+            <artifactId>zipkin-reporter-brave</artifactId>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>
