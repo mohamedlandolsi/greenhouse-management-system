@@ -47,18 +47,18 @@ class ParametreRepositoryTest {
     void shouldFindParameterByType() {
         // Given
         Parametre parametre = new Parametre();
-        parametre.setType(ParametreType.HUMIDITY);
+        parametre.setType(ParametreType.HUMIDITE);
         parametre.setSeuilMin(40.0);
         parametre.setSeuilMax(80.0);
         parametre.setUnite("%");
         parametreRepository.save(parametre);
 
         // When
-        Optional<Parametre> found = parametreRepository.findByType(ParametreType.HUMIDITY);
+        Optional<Parametre> found = parametreRepository.findByType(ParametreType.HUMIDITE);
 
         // Then
         assertThat(found).isPresent();
-        assertThat(found.get().getType()).isEqualTo(ParametreType.HUMIDITY);
+        assertThat(found.get().getType()).isEqualTo(ParametreType.HUMIDITE);
     }
 
     @Test
@@ -84,7 +84,7 @@ class ParametreRepositoryTest {
 
         // When/Then
         assertThat(parametreRepository.existsByType(ParametreType.TEMPERATURE)).isTrue();
-        assertThat(parametreRepository.existsByType(ParametreType.HUMIDITY)).isFalse();
+        assertThat(parametreRepository.existsByType(ParametreType.HUMIDITE)).isFalse();
     }
 
     @Test

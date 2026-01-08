@@ -1,12 +1,11 @@
 package com.greenhouse.controle.testutil;
 
-import com.greenhouse.controle.dto.ActionRequest;
-import com.greenhouse.controle.dto.EquipementRequest;
 import com.greenhouse.controle.model.Action;
-import com.greenhouse.controle.model.ActionStatus;
-import com.greenhouse.controle.model.ActionType;
 import com.greenhouse.controle.model.Equipement;
 import com.greenhouse.controle.model.EquipementType;
+import com.greenhouse.controle.model.EtatEquipement;
+import com.greenhouse.controle.model.StatutAction;
+import com.greenhouse.controle.model.TypeAction;
 
 import java.time.LocalDateTime;
 
@@ -25,7 +24,7 @@ public class TestDataBuilder {
         private Long id = 1L;
         private String nom = "Ventilateur 1";
         private EquipementType type = EquipementType.VENTILATEUR;
-        private Boolean actif = true;
+        private EtatEquipement etat = EtatEquipement.ACTIF;
         private LocalDateTime createdAt = LocalDateTime.now();
 
         public EquipementBuilder withId(Long id) {
@@ -44,12 +43,12 @@ public class TestDataBuilder {
         }
 
         public EquipementBuilder active() {
-            this.actif = true;
+            this.etat = EtatEquipement.ACTIF;
             return this;
         }
 
         public EquipementBuilder inactive() {
-            this.actif = false;
+            this.etat = EtatEquipement.INACTIF;
             return this;
         }
 
@@ -58,16 +57,8 @@ public class TestDataBuilder {
             equipement.setId(id);
             equipement.setNom(nom);
             equipement.setType(type);
-            equipement.setActif(actif);
+            equipement.setEtat(etat);
             return equipement;
-        }
-
-        public EquipementRequest buildRequest() {
-            return EquipementRequest.builder()
-                    .nom(nom)
-                    .type(type)
-                    .actif(actif)
-                    .build();
         }
     }
 
@@ -80,12 +71,12 @@ public class TestDataBuilder {
     public static class ActionBuilder {
         private Long id = 1L;
         private Long equipementId = 1L;
-        private ActionType type = ActionType.ALLUMER;
-        private ActionStatus status = ActionStatus.EN_ATTENTE;
-        private String parametreType = "TEMPERATURE";
-        private Double valeurDeclenchement = 35.0;
+        private Long parametreId = 1L;
+        private TypeAction typeAction = TypeAction.ACTIVER;
+        private StatutAction statut = StatutAction.EN_ATTENTE;
+        private Double valeurCible = 25.0;
         private LocalDateTime dateExecution;
-        private String commentaire;
+        private String resultat;
 
         public ActionBuilder withId(Long id) {
             this.id = id;
@@ -97,24 +88,24 @@ public class TestDataBuilder {
             return this;
         }
 
-        public ActionBuilder withType(ActionType type) {
-            this.type = type;
+        public ActionBuilder withTypeAction(TypeAction typeAction) {
+            this.typeAction = typeAction;
             return this;
         }
 
-        public ActionBuilder withStatus(ActionStatus status) {
-            this.status = status;
+        public ActionBuilder withStatut(StatutAction statut) {
+            this.statut = statut;
             return this;
         }
 
         public ActionBuilder executed() {
-            this.status = ActionStatus.EXECUTEE;
+            this.statut = StatutAction.EXECUTEE;
             this.dateExecution = LocalDateTime.now();
             return this;
         }
 
         public ActionBuilder failed() {
-            this.status = ActionStatus.ECHOUEE;
+            this.statut = StatutAction.ECHOUEE;
             return this;
         }
 
@@ -122,23 +113,13 @@ public class TestDataBuilder {
             Action action = new Action();
             action.setId(id);
             action.setEquipementId(equipementId);
-            action.setType(type);
-            action.setStatus(status);
-            action.setParametreType(parametreType);
-            action.setValeurDeclenchement(valeurDeclenchement);
+            action.setParametreId(parametreId);
+            action.setTypeAction(typeAction);
+            action.setStatut(statut);
+            action.setValeurCible(valeurCible);
             action.setDateExecution(dateExecution);
-            action.setCommentaire(commentaire);
+            action.setResultat(resultat);
             return action;
-        }
-
-        public ActionRequest buildRequest() {
-            return ActionRequest.builder()
-                    .equipementId(equipementId)
-                    .type(type)
-                    .parametreType(parametreType)
-                    .valeurDeclenchement(valeurDeclenchement)
-                    .commentaire(commentaire)
-                    .build();
         }
     }
 
@@ -164,8 +145,8 @@ public class TestDataBuilder {
     public static Action createPendingAction(Long equipementId) {
         return anAction()
                 .withEquipementId(equipementId)
-                .withType(ActionType.ALLUMER)
-                .withStatus(ActionStatus.EN_ATTENTE)
+                .withTypeAction(TypeAction.ACTIVER)
+                .withStatut(StatutAction.EN_ATTENTE)
                 .build();
     }
 }

@@ -85,7 +85,7 @@ class KafkaAlertProducerTest {
                 .build();
 
         // When
-        kafkaProducerService.sendAlertEvent(alertEvent);
+        kafkaProducerService.sendAlert(alertEvent);
 
         // Then
         ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(10));
@@ -108,7 +108,7 @@ class KafkaAlertProducerTest {
                 .build();
 
         // When
-        kafkaProducerService.sendMeasurementEvent(measurementEvent);
+        kafkaProducerService.sendMeasurement(measurementEvent);
 
         // Then
         ConsumerRecords<String, Object> records = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(10));

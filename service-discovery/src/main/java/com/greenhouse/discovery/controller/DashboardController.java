@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,16 +26,19 @@ public class DashboardController {
         Map<String, Object> stats = new HashMap<>();
         
         // General statistics
-        stats.put("renewsLastMin", registry.getNumOfRenewsInLastMin());
-        stats.put("renewsThreshold", registry.getNumOfRenewsPerMinThreshold());
+        long renewsLastMin = registry.getNumOfRenewsInLastMin();
+        int renewsThreshold = registry.getNumOfRenewsPerMinThreshold();
+        
+        stats.put("renewsLastMin", renewsLastMin);
+        stats.put("renewsThreshold", renewsThreshold);
         
         // Calculate if self-preservation mode would be active
-        int numOfRenewsInLastMin = registry.getNumOfRenewsInLastMin();
-        int numOfRenewsPerMinThreshold = registry.getNumOfRenewsPerMinThreshold();
-        boolean isSelfPreservationMode = numOfRenewsInLastMin < numOfRenewsPerMinThreshold;
+        boolean isSelfPreservationMode = renewsLastMin < renewsThreshold;
         
         stats.put("selfPreservationMode", isSelfPreservationMode);
-        stats.put("uptime", System.currentTimeMillis() - eurekaServerContext.getServerStartTime());
+        // Use JVM startup time as server start time
+        long serverStartTime = ManagementFactory.getRuntimeMXBean().getStartTime();
+        stats.put("uptime", System.currentTimeMillis() - serverStartTime);
         stats.put("environment", "development");
         stats.put("timestamp", System.currentTimeMillis());
         

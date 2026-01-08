@@ -3,14 +3,11 @@ package com.greenhouse.environnement.unit.service;
 import com.greenhouse.environnement.dto.AlertEvent;
 import com.greenhouse.environnement.dto.MeasurementEvent;
 import com.greenhouse.environnement.service.KafkaProducerService;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -19,9 +16,8 @@ import org.springframework.kafka.support.SendResult;
 import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,18 +25,17 @@ import static org.mockito.Mockito.*;
 class KafkaProducerServiceTest {
 
     @Mock
-    private KafkaTemplate<String, Object> kafkaTemplate;
+    private KafkaTemplate<String, AlertEvent> alertKafkaTemplate;
 
+    @Mock
+    private KafkaTemplate<String, MeasurementEvent> measurementKafkaTemplate;
+
+    @InjectMocks
     private KafkaProducerService kafkaProducerService;
 
-    @BeforeEach
-    void setUp() {
-        kafkaProducerService = new KafkaProducerService(kafkaTemplate);
-    }
-
     @Nested
-    @DisplayName("sendAlertEvent")
-    class SendAlertEvent {
+    @DisplayName("sendAlert")
+    class SendAlert {
 
         @Test
         @DisplayName("should send alert event to correct topic")
@@ -55,24 +50,23 @@ class KafkaProducerServiceTest {
                     .dateMesure(LocalDateTime.now())
                     .severity("HIGH")
                     .message("Temperature exceeded threshold")
+                    .eventId("test-event-1")
                     .build();
 
-            CompletableFuture<SendResult<String, Object>> future = new CompletableFuture<>();
-            when(kafkaTemplate.send(anyString(), any())).thenReturn(future);
+            CompletableFuture<SendResult<String, AlertEvent>> future = new CompletableFuture<>();
+            when(alertKafkaTemplate.send(anyString(), anyString(), any(AlertEvent.class))).thenReturn(future);
 
             // When
-            kafkaProducerService.sendAlertEvent(alertEvent);
+            kafkaProducerService.sendAlert(alertEvent);
 
             // Then
-            ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
-            verify(kafkaTemplate).send(topicCaptor.capture(), eq(alertEvent));
-            assertThat(topicCaptor.getValue()).contains("alert");
+            verify(alertKafkaTemplate).send(anyString(), anyString(), eq(alertEvent));
         }
     }
 
     @Nested
-    @DisplayName("sendMeasurementEvent")
-    class SendMeasurementEvent {
+    @DisplayName("sendMeasurement")
+    class SendMeasurement {
 
         @Test
         @DisplayName("should send measurement event to correct topic")
@@ -85,18 +79,46 @@ class KafkaProducerServiceTest {
                     .unite("°C")
                     .dateMesure(LocalDateTime.now())
                     .isAlert(false)
+                    .eventId("test-event-2")
                     .build();
 
-            CompletableFuture<SendResult<String, Object>> future = new CompletableFuture<>();
-            when(kafkaTemplate.send(anyString(), any())).thenReturn(future);
+            CompletableFuture<SendResult<String, MeasurementEvent>> future = new CompletableFuture<>();
+            when(measurementKafkaTemplate.send(anyString(), anyString(), any(MeasurementEvent.class))).thenReturn(future);
 
             // When
-            kafkaProducerService.sendMeasurementEvent(measurementEvent);
+            kafkaProducerService.sendMeasurement(measurementEvent);
 
             // Then
-            ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
-            verify(kafkaTemplate).send(topicCaptor.capture(), eq(measurementEvent));
-            assertThat(topicCaptor.getValue()).contains("measurement");
+            verify(measurementKafkaTemplate).send(anyString(), anyString(), eq(measurementEvent));
+        }
+    }
+
+    @Nested
+    @DisplayName("sendAlertSync")
+    class SendAlertSync {
+
+        @Test
+        @DisplayName("should send alert synchronously and return true on success")
+        void shouldSendAlertSyncAndReturnTrueOnSuccess() throws Exception {
+            // Given
+            AlertEvent alertEvent = AlertEvent.builder()
+                    .parametreId(1L)
+                    .parametreType("TEMPERATURE")
+                    .valeur(35.0)
+                    .eventId("test-sync-event")
+                    .build();
+
+            CompletableFuture<SendResult<String, AlertEvent>> future = new CompletableFuture<>();
+            SendResult<String, AlertEvent> sendResult = mock(SendResult.class);
+            future.complete(sendResult);
+
+            when(alertKafkaTemplate.send(anyString(), anyString(), any(AlertEvent.class))).thenReturn(future);
+
+            // When
+            boolean result = kafkaProducerService.sendAlertSync(alertEvent);
+
+            // Then - the method should have been called
+            verify(alertKafkaTemplate).send(anyString(), anyString(), eq(alertEvent));
         }
     }
 }

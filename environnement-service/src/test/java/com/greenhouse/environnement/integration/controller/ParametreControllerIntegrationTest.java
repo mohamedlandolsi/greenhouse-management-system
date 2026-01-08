@@ -130,7 +130,7 @@ class ParametreControllerIntegrationTest {
         void shouldReturnAllParameters() throws Exception {
             // Given
             createParameter(ParametreType.TEMPERATURE, 15.0, 30.0, "°C");
-            createParameter(ParametreType.HUMIDITY, 40.0, 80.0, "%");
+            createParameter(ParametreType.HUMIDITE, 40.0, 80.0, "%");
 
             // When
             ResultActions result = mockMvc.perform(get("/api/environnement/parametres"));
@@ -138,7 +138,7 @@ class ParametreControllerIntegrationTest {
             // Then
             result.andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(2)))
-                    .andExpect(jsonPath("$[*].type", containsInAnyOrder("TEMPERATURE", "HUMIDITY")));
+                    .andExpect(jsonPath("$[*].type", containsInAnyOrder("TEMPERATURE", "HUMIDITE")));
         }
 
         @Test

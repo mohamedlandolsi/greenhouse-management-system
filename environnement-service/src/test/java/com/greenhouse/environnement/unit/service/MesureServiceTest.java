@@ -82,7 +82,7 @@ class MesureServiceTest {
             assertThat(response).isNotNull();
             assertThat(response.getValeur()).isEqualTo(22.5);
             verify(mesureRepository).save(any(Mesure.class));
-            verify(kafkaProducerService).sendMeasurementEvent(any());
+            verify(kafkaProducerService).sendMeasurement(any());
         }
 
         @Test
@@ -108,8 +108,8 @@ class MesureServiceTest {
 
             // Then
             assertThat(response).isNotNull();
-            verify(kafkaProducerService).sendAlertEvent(any());
-            verify(kafkaProducerService).sendMeasurementEvent(any());
+            verify(kafkaProducerService).sendAlert(any());
+            verify(kafkaProducerService).sendMeasurement(any());
         }
 
         @Test
@@ -135,7 +135,7 @@ class MesureServiceTest {
 
             // Then
             assertThat(response).isNotNull();
-            verify(kafkaProducerService).sendAlertEvent(any());
+            verify(kafkaProducerService).sendAlert(any());
         }
 
         @Test
@@ -232,7 +232,7 @@ class MesureServiceTest {
             Mesure alertMesure = TestDataBuilder.aMesure().asAlert().build();
             Page<Mesure> page = new PageImpl<>(Arrays.asList(alertMesure));
 
-            when(mesureRepository.findByIsAlertTrue(any(Pageable.class))).thenReturn(page);
+            when(mesureRepository.findByAlerteTrue(any(Pageable.class))).thenReturn(page);
             when(parametreRepository.findById(any())).thenReturn(Optional.of(testParametre));
 
             // When

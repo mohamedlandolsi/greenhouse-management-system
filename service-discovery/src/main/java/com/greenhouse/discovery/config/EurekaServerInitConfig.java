@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import jakarta.annotation.PostConstruct;
 
 @Configuration
-public class EurekaServerConfig {
+public class EurekaServerInitConfig {
 
     @Autowired(required = false)
     private ApplicationInfoManager applicationInfoManager;

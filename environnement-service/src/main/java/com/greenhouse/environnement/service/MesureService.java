@@ -196,7 +196,7 @@ public class MesureService {
                 .mesureId(mesure.getId())
                 .parametreId(mesure.getParametreId())
                 .parametreType(parametre.getType().name())
-                .parametreName(parametre.getNom())
+                .parametreName(parametre.getType().name())
                 .valeur(mesure.getValeur())
                 .unite(parametre.getUnite())
                 .seuilMin(parametre.getSeuilMin())

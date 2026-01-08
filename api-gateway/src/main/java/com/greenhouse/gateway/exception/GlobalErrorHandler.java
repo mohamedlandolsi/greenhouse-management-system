@@ -64,7 +64,7 @@ public class GlobalErrorHandler implements ErrorWebExceptionHandler {
 
     private HttpStatus determineHttpStatus(Throwable ex) {
         if (ex instanceof ResponseStatusException) {
-            return ((ResponseStatusException) ex).getStatus();
+            return HttpStatus.valueOf(((ResponseStatusException) ex).getStatusCode().value());
         } else if (ex.getMessage() != null && ex.getMessage().contains("Connection refused")) {
             return HttpStatus.SERVICE_UNAVAILABLE;
         } else if (ex.getMessage() != null && ex.getMessage().contains("Timeout")) {

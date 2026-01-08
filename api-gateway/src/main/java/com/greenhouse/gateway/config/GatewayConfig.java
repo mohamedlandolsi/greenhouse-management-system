@@ -28,8 +28,7 @@ public class GatewayConfig {
                                         .setRetries(3)
                                         .setMethods(org.springframework.http.HttpMethod.GET)
                                         .setBackoff(Duration.ofMillis(100), Duration.ofMillis(1000), 2, true)))
-                        .uri("lb://ENVIRONNEMENT-SERVICE")
-                        .metadata("timeout", 5000))
+                        .uri("lb://ENVIRONNEMENT-SERVICE"))
                 
                 // Controle Service Routes with Circuit Breaker
                 .route("controle-service", r -> r
@@ -46,8 +45,7 @@ public class GatewayConfig {
                                         .setRetries(3)
                                         .setMethods(org.springframework.http.HttpMethod.GET)
                                         .setBackoff(Duration.ofMillis(100), Duration.ofMillis(1000), 2, true)))
-                        .uri("lb://CONTROLE-SERVICE")
-                        .metadata("timeout", 5000))
+                        .uri("lb://CONTROLE-SERVICE"))
                 
                 // Service Discovery UI Routes
                 .route("service-discovery", r -> r

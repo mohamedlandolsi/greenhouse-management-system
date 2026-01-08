@@ -4,6 +4,14 @@ server:
 spring:
   application:
     name: config-server
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: classpath:/config,classpath:/config/{profile}
+        # Completely disable git repository in Docker
+        git:
+          enabled: false
 
 eureka:
   client:

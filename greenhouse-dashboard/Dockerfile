@@ -14,7 +14,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy package files
-COPY greenhouse-dashboard/package.json greenhouse-dashboard/package-lock.json* ./
+COPY package.json package-lock.json* ./
 
 # Install dependencies
 RUN npm ci --only=production=false
@@ -28,7 +28,7 @@ WORKDIR /app
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY greenhouse-dashboard/ .
+COPY . .
 
 # Set build-time environment variables
 ENV NEXT_TELEMETRY_DISABLED=1

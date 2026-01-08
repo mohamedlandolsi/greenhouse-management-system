@@ -39,7 +39,7 @@ public class KafkaProducerService {
         String key = alertEvent.getParametreId().toString();
         
         log.info("Sending alert to topic '{}' with key '{}': type={}, value={}, eventId={}",
-                alertsTopic, key, alertEvent.getType(), alertEvent.getValeur(), alertEvent.getEventId());
+                alertsTopic, key, alertEvent.getParametreType(), alertEvent.getValeur(), alertEvent.getEventId());
 
         CompletableFuture<SendResult<String, AlertEvent>> future = 
                 alertKafkaTemplate.send(alertsTopic, key, alertEvent);
@@ -68,7 +68,7 @@ public class KafkaProducerService {
         String key = measurementEvent.getParametreId().toString();
         
         log.debug("Sending measurement to topic '{}' with key '{}': type={}, value={}, eventId={}",
-                measurementTopic, key, measurementEvent.getType(), measurementEvent.getValeur(), 
+                measurementTopic, key, measurementEvent.getParametreType(), measurementEvent.getValeur(), 
                 measurementEvent.getEventId());
 
         CompletableFuture<SendResult<String, MeasurementEvent>> future = 
