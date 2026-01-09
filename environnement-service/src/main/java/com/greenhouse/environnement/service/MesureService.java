@@ -1,5 +1,6 @@
 package com.greenhouse.environnement.service;
 
+import com.greenhouse.environnement.config.MetricsConfig;
 import com.greenhouse.environnement.dto.AlertEvent;
 import com.greenhouse.environnement.dto.MeasurementEvent;
 import com.greenhouse.environnement.dto.MesureRequest;
@@ -30,6 +31,7 @@ public class MesureService {
     private final MesureRepository mesureRepository;
     private final ParametreRepository parametreRepository;
     private final KafkaProducerService kafkaProducerService;
+    private final MetricsConfig metricsConfig;
 
     @Transactional
     public MesureResponse createMesure(MesureRequest request) {
@@ -58,11 +60,16 @@ public class MesureService {
         Mesure savedMesure = mesureRepository.save(mesure);
         log.info("Measurement created with ID: {} - Alert: {}", savedMesure.getId(), isAlert);
 
+        // Increment measurement counter for metrics
+        metricsConfig.incrementMeasurement(parametre.getType().name());
+
         // Always send measurement to measurement-stream topic
         sendMeasurementToKafka(savedMesure, parametre, isAlert);
 
         // If alert, send to greenhouse-alerts topic
         if (isAlert) {
+            // Increment alert counter for metrics
+            metricsConfig.incrementAlert(parametre.getType().name(), "warning");
             sendAlertToKafka(savedMesure, parametre);
         }
 

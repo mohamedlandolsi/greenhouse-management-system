@@ -137,7 +137,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,gateway,circuitbreakers,ratelimiters
+        include: health,info,metrics,prometheus,gateway,circuitbreakers,ratelimiters
   endpoint:
     health:
       show-details: always

@@ -264,10 +264,8 @@ export function getEquipmentTypeLabel(type: string) {
       return 'Chauffage';
     case 'ECLAIRAGE':
       return 'Éclairage';
-    case 'ARROSAGE':
-      return 'Arrosage';
-    case 'HUMIDIFICATEUR':
-      return 'Humidificateur';
+    case 'POMPE':
+      return 'Pompe';
     default:
       return type;
   }
@@ -281,10 +279,8 @@ export function getEquipmentTypeIcon(type: string) {
       return '🔥';
     case 'ECLAIRAGE':
       return '💡';
-    case 'ARROSAGE':
-      return '🚿';
-    case 'HUMIDIFICATEUR':
-      return '💨';
+    case 'POMPE':
+      return '🚰';
     default:
       return '⚙️';
   }

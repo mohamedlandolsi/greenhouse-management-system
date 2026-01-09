@@ -53,15 +53,14 @@ import {
   formatDate,
   formatRelativeTime,
 } from '@/lib/utils';
-import { Equipement, EquipementType, EquipementStatut, TypeAction } from '@/types';
+import { Equipement, EquipementType, EquipementStatut, TypeAction, EtatEquipement } from '@/types';
 import toast from 'react-hot-toast';
 
 const equipmentTypes: EquipementType[] = [
   'VENTILATEUR',
+  'POMPE',
   'CHAUFFAGE',
   'ECLAIRAGE',
-  'ARROSAGE',
-  'HUMIDIFICATEUR',
 ];
 
 export default function EquipementsPage() {
@@ -74,8 +73,7 @@ export default function EquipementsPage() {
   const [createForm, setCreateForm] = useState({
     nom: '',
     type: 'VENTILATEUR' as EquipementType,
-    localisation: '',
-    description: '',
+    etat: 'ACTIF' as EtatEquipement,
   });
 
   const [actionForm, setActionForm] = useState({
@@ -117,7 +115,7 @@ export default function EquipementsPage() {
       await createMutation.mutateAsync(createForm);
       toast.success('Équipement créé avec succès');
       setIsCreateOpen(false);
-      setCreateForm({ nom: '', type: 'VENTILATEUR', localisation: '', description: '' });
+      setCreateForm({ nom: '', type: 'VENTILATEUR', etat: 'ACTIF' });
     } catch {
       toast.error('Erreur lors de la création');
     }
@@ -342,24 +340,22 @@ export default function EquipementsPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Localisation</Label>
-              <Input
-                value={createForm.localisation}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, localisation: e.target.value })
+              <Label>État initial</Label>
+              <Select
+                value={createForm.etat}
+                onValueChange={(value) =>
+                  setCreateForm({ ...createForm, etat: value as EtatEquipement })
                 }
-                placeholder="ex: Zone A, Allée 3"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Input
-                value={createForm.description}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, description: e.target.value })
-                }
-                placeholder="Description optionnelle..."
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ACTIF">Actif</SelectItem>
+                  <SelectItem value="INACTIF">Inactif</SelectItem>
+                  <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

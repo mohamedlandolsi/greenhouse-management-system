@@ -1,5 +1,6 @@
 package com.greenhouse.controle.service;
 
+import com.greenhouse.controle.config.MetricsConfig;
 import com.greenhouse.controle.dto.ActionRequest;
 import com.greenhouse.controle.dto.ActionResponse;
 import com.greenhouse.controle.dto.AlertEvent;
@@ -30,6 +31,7 @@ public class ActionService {
     private final ActionRepository actionRepository;
     private final EquipementService equipementService;
     private final KafkaProducerService kafkaProducerService;
+    private final MetricsConfig metricsConfig;
 
     @Transactional
     public ActionResponse createAction(ActionRequest request) {
@@ -74,6 +76,10 @@ public class ActionService {
             Action savedAction = actionRepository.save(action);
             log.info("Action executed successfully");
             
+            // Increment metrics for successful action
+            metricsConfig.incrementActionExecution("success");
+            metricsConfig.incrementEquipmentActivation(equipement.getType().name());
+            
             // Publish action event to Kafka
             publishActionEvent(savedAction, equipement, isAutomatic);
             
@@ -82,6 +88,9 @@ public class ActionService {
             action.setStatut(StatutAction.ECHOUEE);
             action.setResultat("Échec de l'exécution: " + e.getMessage());
             Action savedAction = actionRepository.save(action);
+            
+            // Increment metrics for failed action
+            metricsConfig.incrementActionExecution("failure");
             
             // Publish failed action event to Kafka
             publishActionEvent(savedAction, equipement, isAutomatic);

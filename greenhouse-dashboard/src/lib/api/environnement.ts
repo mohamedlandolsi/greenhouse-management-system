@@ -77,7 +77,7 @@ export const mesureApi = {
 
   // Get measurements by date range
   getByDateRange: (startDate: string, endDate: string, parametreId?: number, page = 0, size = 100) =>
-    api.get<PageResponse<Mesure>>(`${ENVIRONNEMENT_API}/mesures/range`, {
+    api.get<PageResponse<Mesure>>(`${ENVIRONNEMENT_API}/mesures/filter`, {
       startDate,
       endDate,
       parametreId,

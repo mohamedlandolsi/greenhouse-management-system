@@ -54,12 +54,14 @@ export interface MesureRequest {
 
 export type EquipementType = 
   | 'VENTILATEUR' 
+  | 'POMPE' 
   | 'CHAUFFAGE' 
-  | 'ECLAIRAGE' 
-  | 'ARROSAGE' 
-  | 'HUMIDIFICATEUR';
+  | 'ECLAIRAGE';
 
 export type EquipementStatut = 'ACTIF' | 'INACTIF' | 'EN_PANNE' | 'MAINTENANCE';
+
+// Backend uses EtatEquipement for equipment state
+export type EtatEquipement = 'ACTIF' | 'INACTIF' | 'MAINTENANCE';
 
 export interface Equipement {
   id: number;
@@ -76,9 +78,8 @@ export interface Equipement {
 export interface EquipementRequest {
   nom: string;
   type: EquipementType;
-  statut?: EquipementStatut;
-  localisation?: string;
-  description?: string;
+  etat: EtatEquipement;
+  parametreAssocie?: number;
 }
 
 // ==========================================
