@@ -45,11 +45,14 @@ graph TB
 ```
 
 ### Key Features
-- 🌡️ **Real-time Monitoring** - Temperature, humidity, CO2, light levels
-- ⚡ **Automatic Control** - Automated responses to threshold breaches
-- 📊 **Dashboard** - Live data visualization with SSE streaming
-- 🔔 **Alert System** - Kafka-based event-driven notifications
-- 🎛️ **Equipment Control** - Manage ventilators, heaters, irrigation
+- 🌡️ **Real-time Monitoring** - Temperature, humidity, CO2, light levels, soil moisture
+- ⚡ **Automatic Control** - Automated responses to threshold breaches via Kafka events
+- 📊 **Dashboard** - Live data visualization with Server-Sent Events (SSE) streaming
+- 🔔 **Alert System** - Kafka-based event-driven notifications with Alertmanager integration
+- 🎛️ **Equipment Control** - Manage ventilators, heaters, irrigation, lighting, humidifiers
+- 📈 **Distributed Tracing** - End-to-end request tracing with Zipkin
+- 🔄 **Circuit Breaker** - Fault tolerance with automatic fallback
+- 🚀 **Auto-Scaling** - Kubernetes HPA for dynamic scaling
 
 ---
 
@@ -57,13 +60,15 @@ graph TB
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | Next.js 15, React 18, TypeScript, Tailwind CSS |
-| **API Gateway** | Spring Cloud Gateway, Redis (rate limiting) |
-| **Services** | Spring Boot 3.2, Spring Cloud 2023.0 |
-| **Messaging** | Apache Kafka |
-| **Database** | PostgreSQL 15 |
+| **Frontend** | Next.js 15, React 18, TypeScript, Tailwind CSS, Recharts, TanStack Query, Zustand |
+| **API Gateway** | Spring Cloud Gateway, Redis (rate limiting), Resilience4j (circuit breaker) |
+| **Services** | Spring Boot 3.2, Spring Cloud 2023.0, Spring Data JPA |
+| **Messaging** | Apache Kafka (Confluent 7.5.0) |
+| **Database** | PostgreSQL 15 (database per service pattern) |
 | **Discovery** | Netflix Eureka |
-| **Containerization** | Docker, Docker Compose, Kubernetes |
+| **Caching** | Redis Alpine |
+| **Containerization** | Docker, Docker Compose, Kubernetes (Kustomize) |
+| **Observability** | Prometheus, Grafana, Zipkin, Alertmanager, Micrometer |
 
 ---
 
@@ -97,6 +102,9 @@ docker compose --profile dev up -d
 | **API Gateway** | http://localhost:8080 |
 | **Eureka** | http://localhost:8761 |
 | **Kafka UI** | http://localhost:9093 |
+| **Prometheus** | http://localhost:9090 |
+| **Grafana** | http://localhost:3001 (admin/admin) |
+| **Zipkin** | http://localhost:9411 |
 
 ### Kubernetes Deployment
 
@@ -106,7 +114,15 @@ docker compose --profile dev up -d
 
 # Deploy to production
 ./k8s/deploy.sh prod
+
+# Delete deployment
+./k8s/deploy.sh dev --delete
 ```
+
+| Environment | Namespace | Replicas | HPA |
+|-------------|-----------|----------|-----|
+| Development | greenhouse-dev | 1 | 1-5 |
+| Production | greenhouse-prod | 3+ | 3-20 |
 
 ---
 
@@ -114,18 +130,20 @@ docker compose --profile dev up -d
 
 ```
 greenhouse-management-system/
-├── api-gateway/              # Spring Cloud Gateway
-├── service-discovery/        # Eureka Server
+├── api-gateway/              # Spring Cloud Gateway (routing, rate limiting, circuit breaker)
+├── service-discovery/        # Eureka Server (service registry)
 ├── config-server/            # Centralized Configuration
-├── environnement-service/    # Environmental Monitoring
-├── controle-service/         # Equipment Control
-├── greenhouse-dashboard/     # Next.js Frontend
+├── environnement-service/    # Environmental Monitoring (sensors, measurements, alerts)
+├── controle-service/         # Equipment Control (actuators, actions)
+├── greenhouse-dashboard/     # Next.js Frontend (React 18, TypeScript, Tailwind)
 ├── k8s/                      # Kubernetes Manifests
-│   ├── base/                 # Base configurations
-│   └── overlays/             # Dev/Prod overlays
+│   ├── base/                 # Base configurations (infrastructure, services, networking)
+│   └── overlays/             # Dev/Prod overlays (replicas, resources, TLS)
+├── monitoring/               # Observability configs (Prometheus, Grafana, Alertmanager)
 ├── docs/                     # Documentation
-├── docker-compose.yml
-└── pom.xml
+├── scripts/                  # Utility scripts
+├── docker-compose.yml        # Local development orchestration
+└── pom.xml                   # Parent Maven POM (multi-module)
 ```
 
 ---
@@ -139,6 +157,22 @@ greenhouse-management-system/
 | [Development Guide](docs/DEVELOPMENT_GUIDE.md) | Local setup & contributing |
 | [Architecture Decisions](docs/ARCHITECTURE_DECISION_RECORDS.md) | Design rationale |
 | [K8s README](k8s/README.md) | Kubernetes deployment |
+| [Monitoring Guide](docs/MONITORING.md) | Observability & alerting |
+| [Gateway Features](api-gateway/GATEWAY_FEATURES.md) | API Gateway configuration |
+
+---
+
+## 🏗️ Architecture Patterns
+
+| Pattern | Implementation |
+|---------|----------------|
+| **API Gateway** | Spring Cloud Gateway (single entry point) |
+| **Service Discovery** | Netflix Eureka (dynamic registration) |
+| **Event-Driven** | Apache Kafka (async messaging) |
+| **Database per Service** | Separate PostgreSQL per microservice |
+| **Circuit Breaker** | Resilience4j (fault tolerance) |
+| **CQRS-lite** | Separate read/write paths via Kafka |
+| **Server-Sent Events** | Real-time dashboard updates |
 
 ---
 
@@ -181,22 +215,52 @@ npm run test:e2e
 
 ---
 
-## 📊 Monitoring
+## 📊 Monitoring & Observability
 
+The system includes a comprehensive observability stack:
+
+### Monitoring Stack
+| Tool | URL | Purpose |
+|------|-----|--------|
+| **Prometheus** | http://localhost:9090 | Metrics collection & alerting |
+| **Grafana** | http://localhost:3001 | Dashboards & visualization |
+| **Zipkin** | http://localhost:9411 | Distributed tracing |
+| **Alertmanager** | http://localhost:9094 | Alert routing & notifications |
+
+### Actuator Endpoints
 | Endpoint | Description |
 |----------|-------------|
 | `/actuator/health` | Service health |
-| `/actuator/metrics` | Prometheus metrics |
+| `/actuator/prometheus` | Prometheus metrics |
 | `/actuator/info` | Build info |
+
+### Custom Metrics
+| Metric | Description |
+|--------|-------------|
+| `greenhouse_measurements_total` | Measurements by type |
+| `greenhouse_alerts_total` | Alerts by type/severity |
+| `greenhouse_equipment_activations_total` | Equipment activations |
+
+### Configured Alerts
+| Alert | Condition | Severity |
+|-------|-----------|----------|
+| ServiceDown | Unreachable for 1m | Critical |
+| HighErrorRate | >5% errors for 5m | Warning |
+| HighResponseTime | P95 >2s for 5m | Warning |
+| JvmHeapMemoryHigh | >90% heap for 10m | Warning |
 
 ---
 
 ## 🔐 Security
 
-- **CORS** - Configured for frontend origins
-- **Rate Limiting** - Redis-based via API Gateway
+- **CORS** - Configured for frontend origins (localhost:3000, localhost:3001)
+- **Rate Limiting** - Redis-based (10 req/sec per IP, burst of 20)
+- **Circuit Breaker** - Resilience4j with fallback responses
+- **Security Headers** - X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, HSTS
+- **Request Size Limit** - 5MB max payload
 - **Network Policies** - K8s network segmentation
 - **Secrets** - Kubernetes secrets / environment variables
+- **Request Tracing** - Unique X-Request-ID for all requests
 
 ---
 
