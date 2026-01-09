@@ -97,6 +97,26 @@ public class EquipementService {
         return equipementRepository.findByParametreAssocie(parametreId);
     }
 
+    @Transactional
+    public EquipementResponse toggleStatus(Long id) {
+        log.info("Toggling status for equipment with ID: {}", id);
+        
+        Equipement equipement = equipementRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Équipement non trouvé avec l'ID: " + id));
+        
+        // Toggle between ACTIF and INACTIF
+        if (equipement.getEtat() == EtatEquipement.ACTIF) {
+            equipement.setEtat(EtatEquipement.INACTIF);
+            log.info("Equipment {} status changed to INACTIF", id);
+        } else {
+            equipement.setEtat(EtatEquipement.ACTIF);
+            log.info("Equipment {} status changed to ACTIF", id);
+        }
+        
+        Equipement updated = equipementRepository.save(equipement);
+        return mapToResponse(updated);
+    }
+
     private EquipementResponse mapToResponse(Equipement equipement) {
         EquipementResponse response = new EquipementResponse();
         response.setId(equipement.getId());

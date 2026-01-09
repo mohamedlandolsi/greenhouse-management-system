@@ -50,4 +50,11 @@ public class EquipementController {
         EquipementResponse response = equipementService.updateEquipement(id, request);
         return ResponseEntity.ok(response);
     }
+
+    @PutMapping("/{id}/statut")
+    @Operation(summary = "Basculer le statut d'un équipement", description = "Active ou désactive un équipement (bascule entre ACTIF et INACTIF)")
+    public ResponseEntity<EquipementResponse> toggleEquipementStatus(@PathVariable Long id) {
+        EquipementResponse response = equipementService.toggleStatus(id);
+        return ResponseEntity.ok(response);
+    }
 }
