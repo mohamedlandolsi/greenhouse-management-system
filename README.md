@@ -4,45 +4,7 @@ A complete microservices-based system for monitoring and controlling greenhouse 
 
 ## 📋 Project Overview
 
-```mermaid
-graph TB
-    subgraph Frontend
-        FE[Dashboard<br/>Next.js 15]
-    end
-    
-    subgraph API Layer
-        GW[API Gateway<br/>Spring Cloud Gateway]
-    end
-    
-    subgraph Services
-        ENV[Environnement Service]
-        CTL[Contrôle Service]
-    end
-    
-    subgraph Infrastructure
-        SD[Service Discovery<br/>Eureka]
-        CFG[Config Server]
-        KFK[Kafka]
-        RD[Redis]
-    end
-    
-    subgraph Databases
-        PG1[(PostgreSQL<br/>Environnement)]
-        PG2[(PostgreSQL<br/>Contrôle)]
-    end
-    
-    FE --> GW
-    GW --> ENV
-    GW --> CTL
-    ENV --> KFK
-    CTL --> KFK
-    ENV --> PG1
-    CTL --> PG2
-    ENV --> SD
-    CTL --> SD
-    GW --> SD
-    GW --> RD
-```
+![Architecture Diagram](docs/architecture-diagram-dark.png)
 
 ### Key Features
 - 🌡️ **Real-time Monitoring** - Temperature, humidity, CO2, light levels, soil moisture
