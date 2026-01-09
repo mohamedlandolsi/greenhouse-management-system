@@ -39,16 +39,16 @@ import { StatutAction, TypeAction, Action } from '@/types';
 
 export default function ActionsPage() {
   const [page, setPage] = useState(0);
-  const [equipementId, setEquipementId] = useState<string>('');
-  const [statut, setStatut] = useState<string>('');
-  const [typeAction, setTypeAction] = useState<string>('');
+  const [equipementId, setEquipementId] = useState<string>('__all__');
+  const [statut, setStatut] = useState<string>('__all__');
+  const [typeAction, setTypeAction] = useState<string>('__all__');
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Queries
   const { data: actionsData, isLoading, refetch } = useActions({
-    equipementId: equipementId ? Number(equipementId) : undefined,
-    statut: statut as StatutAction | undefined,
+    equipementId: equipementId !== '__all__' ? Number(equipementId) : undefined,
+    statut: statut !== '__all__' ? statut as StatutAction : undefined,
     page,
     size: 20,
   });
@@ -69,7 +69,7 @@ export default function ActionsPage() {
 
   // Filter by type action locally
   const filteredActions = actions.filter((action) => {
-    if (typeAction && action.typeAction !== typeAction) return false;
+    if (typeAction && typeAction !== '__all__' && action.typeAction !== typeAction) return false;
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       const equipement = equipements.find((e) => e.id === action.equipementId);
@@ -225,7 +225,7 @@ export default function ActionsPage() {
                 <SelectValue placeholder="Équipement" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tous les équipements</SelectItem>
+                <SelectItem value="__all__">Tous les équipements</SelectItem>
                 {equipements.map((e) => (
                   <SelectItem key={e.id} value={String(e.id)}>
                     {getEquipmentTypeIcon(e.type)} {e.nom}
@@ -238,7 +238,7 @@ export default function ActionsPage() {
                 <SelectValue placeholder="Statut" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tous les statuts</SelectItem>
+                <SelectItem value="__all__">Tous les statuts</SelectItem>
                 <SelectItem value="EN_ATTENTE">En attente</SelectItem>
                 <SelectItem value="EN_COURS">En cours</SelectItem>
                 <SelectItem value="TERMINEE">Terminée</SelectItem>
@@ -251,7 +251,7 @@ export default function ActionsPage() {
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tous les types</SelectItem>
+                <SelectItem value="__all__">Tous les types</SelectItem>
                 <SelectItem value="ACTIVER">Activer</SelectItem>
                 <SelectItem value="DESACTIVER">Désactiver</SelectItem>
                 <SelectItem value="AJUSTER">Ajuster</SelectItem>
@@ -261,9 +261,9 @@ export default function ActionsPage() {
             <Button
               variant="outline"
               onClick={() => {
-                setEquipementId('');
-                setStatut('');
-                setTypeAction('');
+                setEquipementId('__all__');
+                setStatut('__all__');
+                setTypeAction('__all__');
                 setSearchQuery('');
               }}
             >

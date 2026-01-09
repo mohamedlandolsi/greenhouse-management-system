@@ -26,7 +26,8 @@ public class ResponseHeaderFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        return chain.filter(exchange).then(Mono.fromRunnable(() -> {
+        // Add security headers before the response is committed
+        exchange.getResponse().beforeCommit(() -> {
             ServerHttpResponse response = exchange.getResponse();
             HttpHeaders headers = response.getHeaders();
             
@@ -34,13 +35,24 @@ public class ResponseHeaderFilter implements GlobalFilter, Ordered {
             SENSITIVE_HEADERS.forEach(headers::remove);
             
             // Add security headers
-            headers.add("X-Content-Type-Options", "nosniff");
-            headers.add("X-Frame-Options", "DENY");
-            headers.add("X-XSS-Protection", "1; mode=block");
-            headers.add("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+            if (!headers.containsKey("X-Content-Type-Options")) {
+                headers.add("X-Content-Type-Options", "nosniff");
+            }
+            if (!headers.containsKey("X-Frame-Options")) {
+                headers.add("X-Frame-Options", "DENY");
+            }
+            if (!headers.containsKey("X-XSS-Protection")) {
+                headers.add("X-XSS-Protection", "1; mode=block");
+            }
+            if (!headers.containsKey("Strict-Transport-Security")) {
+                headers.add("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+            }
             
             log.debug("Added security headers to response");
-        }));
+            return Mono.empty();
+        });
+        
+        return chain.filter(exchange);
     }
 
     @Override

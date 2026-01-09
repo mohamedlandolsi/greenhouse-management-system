@@ -13,7 +13,14 @@ import { formatDate } from '@/lib/utils';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  // Fix hydration mismatch - only set date after client mount
+  useEffect(() => {
+    setIsClient(true);
+    setLastUpdate(new Date());
+  }, []);
 
   // Fetch data
   const { data: parametresData, isLoading: loadingParametres } = useParametres(0, 100);
@@ -36,11 +43,12 @@ export default function DashboardPage() {
 
   // Update last update time periodically
   useEffect(() => {
+    if (!isClient) return;
     const interval = setInterval(() => {
       setLastUpdate(new Date());
     }, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isClient]);
 
   // Get latest values
   const latestTemp = tempMesures?.[0]?.valeur ?? 0;
@@ -89,7 +97,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <Clock className="h-4 w-4" />
-            <span>Dernière mise à jour: {formatDate(lastUpdate, 'HH:mm:ss')}</span>
+            <span>Dernière mise à jour: {lastUpdate ? formatDate(lastUpdate, 'HH:mm:ss') : '--:--:--'}</span>
           </div>
           <Badge variant="outline" className="gap-1">
             <Activity className="h-3 w-3 text-green-500 animate-pulse" />

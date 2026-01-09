@@ -72,8 +72,8 @@ public class KafkaProducerConfig {
         props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
         props.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
         
-        // Compression
-        props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy");
+        // Compression - using gzip instead of snappy (snappy requires glibc, Alpine uses musl)
+        props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "gzip");
         
         // JSON serializer settings
         props.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);

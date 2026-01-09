@@ -81,8 +81,9 @@ export default function ParametresPage() {
 
   // Filter parametres
   const filteredParametres = parametres.filter((p) => {
+    const displayName = p.nom || getParameterTypeLabel(p.type);
     const matchesSearch =
-      p.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.type.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'ALL' || p.type === filterType;
     return matchesSearch && matchesType;
@@ -272,7 +273,7 @@ export default function ParametresPage() {
                 </CardHeader>
                 <CardContent>
                   <h3 className="font-semibold text-gray-900 dark:text-white">
-                    {parametre.nom}
+                    {parametre.nom || getParameterTypeLabel(parametre.type)}
                   </h3>
                   <Badge variant="secondary" className="mt-2">
                     {getParameterTypeLabel(parametre.type)}

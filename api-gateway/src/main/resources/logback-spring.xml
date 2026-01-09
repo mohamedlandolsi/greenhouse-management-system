@@ -30,7 +30,7 @@
     <!-- Profile-based configuration -->
     <springProfile name="docker,prod">
         <root level="INFO">
-            <appender-ref ref="CONSOLE_JSON"/>
+            <appender-ref ref="CONSOLE_PRETTY"/>
         </root>
         <logger name="com.greenhouse" level="INFO"/>
         <logger name="org.springframework" level="WARN"/>

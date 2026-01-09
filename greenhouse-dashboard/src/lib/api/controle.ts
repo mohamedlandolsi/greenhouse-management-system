@@ -9,16 +9,38 @@ import {
   EquipementStatut,
 } from '@/types';
 
-const CONTROLE_API = process.env.NEXT_PUBLIC_CONTROLE_API || '/controle';
+const CONTROLE_API = process.env.NEXT_PUBLIC_CONTROLE_API || '/api/controle';
 
 // ==========================================
 // Equipement API
 // ==========================================
 
 export const equipementApi = {
-  // Get all equipment
-  getAll: (page = 0, size = 20) => 
-    api.get<PageResponse<Equipement>>(`${CONTROLE_API}/equipements`, { page, size }),
+  // Get all equipment - Backend returns array, wrap in PageResponse format
+  getAll: async (page = 0, size = 20): Promise<PageResponse<Equipement>> => {
+    const data = await api.get<Equipement[]>(`${CONTROLE_API}/equipements`);
+    // Backend returns array directly, wrap it for compatibility
+    return {
+      content: data,
+      totalElements: data.length,
+      totalPages: 1,
+      size: data.length,
+      number: 0,
+      first: true,
+      last: true,
+      empty: data.length === 0,
+      numberOfElements: data.length,
+      pageable: {
+        pageNumber: 0,
+        pageSize: data.length,
+        sort: { sorted: false, unsorted: true, empty: true },
+        offset: 0,
+        paged: false,
+        unpaged: true,
+      },
+      sort: { sorted: false, unsorted: true, empty: true },
+    };
+  },
 
   // Get equipment by ID
   getById: (id: number) => 

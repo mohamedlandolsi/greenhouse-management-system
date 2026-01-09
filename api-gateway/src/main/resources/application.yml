@@ -30,11 +30,14 @@ spring:
             allowCredentials: true
             maxAge: 3600
       httpclient:
-        connect-timeout: 5000
-        response-timeout: 5s
+        connect-timeout: 10000
+        response-timeout: 30s
+        wiretap: true
         pool:
           type: elastic
-          max-idle-time: 30s
+          max-idle-time: 60s
+          max-connections: 1000
+          acquire-timeout: 45000
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
   redis:

@@ -44,23 +44,19 @@ public class LoggingFilter implements GlobalFilter, Ordered {
                 .request(modifiedRequest)
                 .build();
         
-        return chain.filter(modifiedExchange).then(Mono.fromRunnable(() -> {
+        return chain.filter(modifiedExchange).doFinally(signalType -> {
             ServerHttpResponse response = exchange.getResponse();
             long endTime = Instant.now().toEpochMilli();
             long duration = endTime - startTime;
             
-            // Add custom response headers
-            response.getHeaders().add("X-Request-ID", requestId);
-            response.getHeaders().add("X-Response-Time", duration + "ms");
-            
-            // Log response
+            // Log response (headers may already be committed, so just log)
             log.info("Outgoing response: {} {} | Request-ID: {} | Status: {} | Duration: {}ms",
                     request.getMethod(),
                     request.getURI(),
                     requestId,
                     response.getStatusCode(),
                     duration);
-        }));
+        });
     }
 
     @Override

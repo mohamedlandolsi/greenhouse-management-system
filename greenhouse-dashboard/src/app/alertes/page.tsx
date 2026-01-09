@@ -134,7 +134,7 @@ const mockAlerts: Alert[] = [
 
 export default function AlertesPage() {
   const [alerts, setAlerts] = useState<Alert[]>(mockAlerts);
-  const [severityFilter, setSeverityFilter] = useState<string>('');
+  const [severityFilter, setSeverityFilter] = useState<string>('__all__');
   const [tab, setTab] = useState<'all' | 'unacknowledged' | 'acknowledged'>('all');
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
@@ -161,7 +161,7 @@ export default function AlertesPage() {
 
   // Filter alerts
   const filteredAlerts = alerts.filter((alert) => {
-    if (severityFilter && alert.severity !== severityFilter) return false;
+    if (severityFilter && severityFilter !== '__all__' && alert.severity !== severityFilter) return false;
     if (tab === 'unacknowledged' && alert.acknowledged) return false;
     if (tab === 'acknowledged' && !alert.acknowledged) return false;
     return true;
@@ -312,7 +312,7 @@ export default function AlertesPage() {
                   <SelectValue placeholder="Sévérité" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toutes les sévérités</SelectItem>
+                  <SelectItem value="__all__">Toutes les sévérités</SelectItem>
                   <SelectItem value="CRITICAL">Critique</SelectItem>
                   <SelectItem value="WARNING">Avertissement</SelectItem>
                   <SelectItem value="INFO">Information</SelectItem>
@@ -320,7 +320,7 @@ export default function AlertesPage() {
               </Select>
               <Button
                 variant="outline"
-                onClick={() => setSeverityFilter('')}
+                onClick={() => setSeverityFilter('__all__')}
               >
                 <Filter className="h-4 w-4 mr-2" />
                 Réinitialiser

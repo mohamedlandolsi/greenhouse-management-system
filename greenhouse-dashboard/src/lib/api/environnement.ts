@@ -8,16 +8,38 @@ import {
   MesureFilters,
 } from '@/types';
 
-const ENVIRONNEMENT_API = process.env.NEXT_PUBLIC_ENVIRONNEMENT_API || '/environnement';
+const ENVIRONNEMENT_API = process.env.NEXT_PUBLIC_ENVIRONNEMENT_API || '/api/environnement';
 
 // ==========================================
 // Parametre API
 // ==========================================
 
 export const parametreApi = {
-  // Get all parameters
-  getAll: (page = 0, size = 20) => 
-    api.get<PageResponse<Parametre>>(`${ENVIRONNEMENT_API}/parametres`, { page, size }),
+  // Get all parameters - Backend returns array, wrap in PageResponse format
+  getAll: async (page = 0, size = 20): Promise<PageResponse<Parametre>> => {
+    const data = await api.get<Parametre[]>(`${ENVIRONNEMENT_API}/parametres`);
+    // Backend returns array directly, wrap it for compatibility
+    return {
+      content: data,
+      totalElements: data.length,
+      totalPages: 1,
+      size: data.length,
+      number: 0,
+      first: true,
+      last: true,
+      empty: data.length === 0,
+      numberOfElements: data.length,
+      pageable: {
+        pageNumber: 0,
+        pageSize: data.length,
+        sort: { sorted: false, unsorted: true, empty: true },
+        offset: 0,
+        paged: false,
+        unpaged: true,
+      },
+      sort: { sorted: false, unsorted: true, empty: true },
+    };
+  },
 
   // Get parameter by ID
   getById: (id: number) => 
@@ -65,7 +87,7 @@ export const mesureApi = {
 
   // Get recent measurements for a parameter
   getRecent: (parametreId: number, limit = 10) =>
-    api.get<Mesure[]>(`${ENVIRONNEMENT_API}/mesures/parametre/${parametreId}/recent`, { limit }),
+    api.get<Mesure[]>(`${ENVIRONNEMENT_API}/mesures/recent/${parametreId}`, { limit }),
 
   // Get alerts
   getAlerts: (parametreId?: number, page = 0, size = 20) =>

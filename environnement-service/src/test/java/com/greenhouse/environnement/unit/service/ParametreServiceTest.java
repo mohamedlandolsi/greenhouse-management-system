@@ -120,7 +120,7 @@ class ParametreServiceTest {
             // Then
             assertThat(responses).hasSize(2);
             assertThat(responses).extracting(ParametreResponse::getType)
-                    .containsExactlyInAnyOrder(ParametreType.TEMPERATURE, ParametreType.HUMIDITY);
+                    .containsExactlyInAnyOrder(ParametreType.TEMPERATURE, ParametreType.HUMIDITE);
         }
 
         @Test
@@ -199,14 +199,14 @@ class ParametreServiceTest {
         void shouldThrowExceptionWhenChangingToExistingType() {
             // Given
             ParametreRequest updateRequest = ParametreRequest.builder()
-                    .type(ParametreType.HUMIDITY)
+                    .type(ParametreType.HUMIDITE)
                     .seuilMin(10.0)
                     .seuilMax(35.0)
                     .unite("%")
                     .build();
 
             when(parametreRepository.findById(1L)).thenReturn(Optional.of(testParametre));
-            when(parametreRepository.existsByType(ParametreType.HUMIDITY)).thenReturn(true);
+            when(parametreRepository.existsByType(ParametreType.HUMIDITE)).thenReturn(true);
 
             // When/Then
             assertThatThrownBy(() -> parametreService.updateParametre(1L, updateRequest))

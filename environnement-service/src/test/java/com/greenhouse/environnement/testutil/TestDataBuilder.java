@@ -118,7 +118,7 @@ public class TestDataBuilder {
             mesure.setParametreId(parametreId);
             mesure.setValeur(valeur);
             mesure.setDateMesure(dateMesure);
-            mesure.setIsAlert(isAlert);
+            mesure.setAlerte(isAlert);
             return mesure;
         }
 
@@ -145,7 +145,7 @@ public class TestDataBuilder {
     public static Parametre createHumidityParameter() {
         return aParametre()
                 .withId(2L)
-                .withType(ParametreType.HUMIDITY)
+                .withType(ParametreType.HUMIDITE)
                 .withSeuilMin(40.0)
                 .withSeuilMax(80.0)
                 .withUnite("%")

@@ -13,38 +13,18 @@ public class GatewayConfig {
     @Bean
     public RouteLocator gatewayRoutes(RouteLocatorBuilder builder) {
         return builder.routes()
-                // Environnement Service Routes with Circuit Breaker
+                // Environnement Service Routes - simplified for stability
                 .route("environnement-service", r -> r
                         .path("/api/environnement/**")
                         .filters(f -> f
-                                .stripPrefix(1)
-                                .circuitBreaker(config -> config
-                                        .setName("environnementCircuitBreaker")
-                                        .setFallbackUri("forward:/fallback/environnement"))
-                                .requestRateLimiter(config -> config
-                                        .setRateLimiter(redisRateLimiter())
-                                        .setKeyResolver(ipKeyResolver()))
-                                .retry(retryConfig -> retryConfig
-                                        .setRetries(3)
-                                        .setMethods(org.springframework.http.HttpMethod.GET)
-                                        .setBackoff(Duration.ofMillis(100), Duration.ofMillis(1000), 2, true)))
+                                .rewritePath("/api/environnement/(?<segment>.*)", "/api/${segment}"))
                         .uri("lb://ENVIRONNEMENT-SERVICE"))
                 
-                // Controle Service Routes with Circuit Breaker
+                // Controle Service Routes - simplified for stability
                 .route("controle-service", r -> r
                         .path("/api/controle/**")
                         .filters(f -> f
-                                .stripPrefix(1)
-                                .circuitBreaker(config -> config
-                                        .setName("controleCircuitBreaker")
-                                        .setFallbackUri("forward:/fallback/controle"))
-                                .requestRateLimiter(config -> config
-                                        .setRateLimiter(redisRateLimiter())
-                                        .setKeyResolver(ipKeyResolver()))
-                                .retry(retryConfig -> retryConfig
-                                        .setRetries(3)
-                                        .setMethods(org.springframework.http.HttpMethod.GET)
-                                        .setBackoff(Duration.ofMillis(100), Duration.ofMillis(1000), 2, true)))
+                                .rewritePath("/api/controle/(?<segment>.*)", "/api/${segment}"))
                         .uri("lb://CONTROLE-SERVICE"))
                 
                 // Service Discovery UI Routes
